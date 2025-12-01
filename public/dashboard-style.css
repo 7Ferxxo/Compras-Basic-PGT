@@ -1,0 +1,67 @@
+.container {
+    max-width: 1200px;
+    margin: 40px auto;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+.btn-volver {
+    display: inline-block;
+    margin-bottom: 20px;
+    text-decoration: none;
+    color: var(--primary-color);
+    font-weight: bold;
+}
+
+.search-container {
+    margin-bottom: 20px;
+}
+
+#search-input {
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+}
+
+#recibos-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#recibos-table th, #recibos-table td {
+    border: 1px solid var(--border-color);
+    padding: 12px 15px;
+    text-align: left;
+}
+
+#recibos-table thead {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+#recibos-table tbody tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+#recibos-table tbody tr:hover {
+    background-color: #ddd;
+}
+
+.btn-pdf {
+    display: inline-block;
+    padding: 8px 12px;
+    background-color: var(--danger-color);
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    font-size: 14px;
+    text-align: center;
+}
+
+.btn-pdf:hover {
+    background-color: var(--danger-hover-color);
+}
