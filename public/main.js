@@ -4,30 +4,97 @@ document.addEventListener('DOMContentLoaded', () => {
     const totalElem = document.getElementById('total');
     const fechaInput = document.getElementById('fecha');
     const casilleroInput = document.getElementById('casillero');
+    const casilleroStatus = document.getElementById('casillero-status');
+    const clienteInput = document.getElementById('cliente');
+    const emailInput = document.getElementById('email_cliente');
     const precioInput = document.getElementById('item-precio');
     const metodoPagoInput = document.getElementById('metodo_pago');
+    const tipoServicioInput = document.getElementById('tipo_servicio');
+    const linkProductoGroup = document.getElementById('link-producto-group');
+    const linkProductoInput = document.getElementById('link_producto');
 
-    casilleroInput.addEventListener('blur', async () => {
-        const casillero = casilleroInput.value.trim();
-        if (casillero) {
-            try {
-                const response = await fetch(`/api/cliente/${casillero}`);
-                if (response.ok) {
-                    const data = await response.json();
-                    document.getElementById('cliente').value = data.cliente;
-                    document.getElementById('email_cliente').value = data.email_cliente;
-                } else if (response.status === 404) {
-                    console.log('Cliente no encontrado para ese casillero, se puede registrar como nuevo.');
-                }
-            } catch (error) {
-                console.error('Error al buscar cliente:', error);
-            }
+    const actualizarLinkProducto = () => {
+        const isBasic = (tipoServicioInput?.value || '').toUpperCase() === 'BASIC';
+        if (linkProductoGroup) linkProductoGroup.style.display = isBasic ? '' : 'none';
+        if (linkProductoInput) {
+            linkProductoInput.required = isBasic;
+            if (!isBasic) linkProductoInput.value = '';
         }
+    };
+
+    let lookupTimer = null;
+    let lastLookupCasillero = '';
+    let abortController = null;
+
+    const setCasilleroStatus = (text, kind) => {
+        if (!casilleroStatus) return;
+        casilleroStatus.textContent = text || '';
+        casilleroStatus.className = `field-hint${kind ? ` is-${kind}` : ''}`;
+    };
+
+    const lookupClienteByCasillero = async () => {
+        const casillero = (casilleroInput?.value || '').trim();
+        if (!casillero) {
+            lastLookupCasillero = '';
+            setCasilleroStatus('', '');
+            return;
+        }
+
+        if (casillero === lastLookupCasillero) return;
+        lastLookupCasillero = casillero;
+
+        if (abortController) abortController.abort();
+        abortController = new AbortController();
+
+        const snapshotCliente = clienteInput?.value ?? '';
+        const snapshotEmail = emailInput?.value ?? '';
+
+        setCasilleroStatus('Buscando cliente…', '');
+
+        try {
+            const response = await fetch(`/api/cliente/${encodeURIComponent(casillero)}`, {
+                signal: abortController.signal,
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+
+                if (clienteInput && clienteInput.value === snapshotCliente) clienteInput.value = data.cliente ?? '';
+                if (emailInput && emailInput.value === snapshotEmail) emailInput.value = data.email_cliente ?? '';
+
+                const source = String(data.source || '').toLowerCase();
+                const sourceLabel = source === 'crm' ? 'CRM' : 'historial';
+                setCasilleroStatus(`Cliente encontrado (${sourceLabel}).`, 'success');
+                return;
+            }
+
+            if (response.status === 404) {
+                setCasilleroStatus('Casillero no encontrado: completa nombre y email.', 'warning');
+                return;
+            }
+
+            setCasilleroStatus('No se pudo consultar el cliente. Completa manualmente.', 'error');
+        } catch (error) {
+            if (error?.name === 'AbortError') return;
+            console.error('Error al buscar cliente:', error);
+            setCasilleroStatus('Error consultando el cliente. Completa manualmente.', 'error');
+        }
+    };
+
+    casilleroInput?.addEventListener('input', () => {
+        if (lookupTimer) clearTimeout(lookupTimer);
+        lookupTimer = setTimeout(lookupClienteByCasillero, 400);
     });
+    casilleroInput?.addEventListener('blur', lookupClienteByCasillero);
 
     if (fechaInput && !fechaInput.value) {
         const hoy = new Date();
         fechaInput.value = hoy.toISOString().split('T')[0];
+    }
+
+    if (tipoServicioInput) {
+        tipoServicioInput.addEventListener('change', actualizarLinkProducto);
+        actualizarLinkProducto();
     }
 
     const formatearMoneda = (valor) => {
@@ -59,9 +126,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const botonEnviar = facturaForm.querySelector('.btn-submit');
         const precio = parseFloat(precioInput.value);
         const descripcion = document.getElementById('item-descripcion').value.trim();
+        const tipoServicio = (tipoServicioInput?.value || '').toUpperCase() || 'OTRO';
+        const linkProducto = (linkProductoInput?.value || '').trim();
 
-        if (!descripcion || isNaN(precio) || precio <= 0) {
-            alert('Debe ingresar una descripción y un precio válido.');
+        if (isNaN(precio) || precio <= 0) {
+            alert('Debe ingresar un precio válido.');
             return;
         }
 
@@ -78,10 +147,12 @@ document.addEventListener('DOMContentLoaded', () => {
             sucursal: document.querySelector('#sucursal').value,
             fecha: fechaInput.value,
             metodo_pago: metodoPagoInput.value,
+            tipo_servicio: tipoServicio,
+            link_producto: linkProducto || null,
             itbms: comision,
             total: total,
             items: [{
-                descripcion: descripcion,
+                descripcion: descripcion || null,
                 precio: precio,
                 total: precio
             }]
@@ -109,7 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .finally(() => {
             botonEnviar.disabled = false;
-            botonEnviar.textContent = 'Generar y Enviar Recibo';
+            botonEnviar.textContent = 'Generar Recibo';
         });
     };
 

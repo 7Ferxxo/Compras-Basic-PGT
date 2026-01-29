@@ -1,0 +1,5 @@
+@import url("../../shared/main.css");
+
+#detailRoot .hint{
+  border-style: solid;
+}

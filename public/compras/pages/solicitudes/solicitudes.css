@@ -1,0 +1,9 @@
+@import url("../../shared/main.css");
+
+.statusSelect{
+  border-radius: 999px;
+  border: 1px solid rgba(15,23,42,.14);
+  background: #fff;
+  font-weight: 800;
+  font-size: 12px;
+}

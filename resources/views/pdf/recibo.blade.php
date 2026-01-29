@@ -34,7 +34,7 @@
         .details-box {
             text-align: right;
         }
-        
+
         .items-table {
             width: 100%;
             border-collapse: collapse;
@@ -57,7 +57,7 @@
 
         .totals-table {
             width: 60%;
-            margin-left: auto; 
+            margin-left: auto;
             margin-top: 20px;
             border-collapse: collapse;
         }
@@ -88,7 +88,7 @@
             <tr>
                 <td width="60%" valign="top">
                     <img src="{{ public_path('imagenes/logo.png') }}" class="logo"><br><br>
-                    
+
                     <div class="info-box">
                         <strong>CLIENTE:</strong><br>
                         {{ $recibo->cliente }}<br>
@@ -96,7 +96,7 @@
                         Casillero: <strong>{{ $recibo->casillero }}</strong>
                     </div>
                 </td>
-                
+
                 <td width="40%" valign="top" class="details-box">
                     <h1>FACTURA</h1>
                     <br>

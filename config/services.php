@@ -2,17 +2,17 @@
 
 return [
 
-    /*
-    |--------------------------------------------------------------------------
-    | Third Party Services
-    |--------------------------------------------------------------------------
-    |
-    | This file is for storing the credentials for third party services such
-    | as Mailgun, Postmark, AWS and more. This file provides the de facto
-    | location for this type of information, allowing packages to have
-    | a conventional file to locate the various service credentials.
-    |
-    */
+      
+                                                                               
+                          
+                                                                               
+     
+                                                                            
+                                                                         
+                                                                      
+                                                                    
+     
+      
 
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),
@@ -33,6 +33,21 @@ return [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
+    ],
+
+    'compras' => [
+        'webhook_url' => env('COMPRAS_WEBHOOK_URL'),
+        'webhook_token' => env('COMPRAS_WEBHOOK_TOKEN'),
+        'timeout_seconds' => env('COMPRAS_WEBHOOK_TIMEOUT', 5),
+        'admin_token' => env('COMPRAS_ADMIN_TOKEN'),
+    ],
+
+    'crm' => [
+                                                               
+                                                                                            
+        'lookup_url' => env('CRM_LOOKUP_URL'),
+        'token' => env('CRM_TOKEN'),
+        'timeout_seconds' => env('CRM_TIMEOUT', 5),
     ],
 
 ];

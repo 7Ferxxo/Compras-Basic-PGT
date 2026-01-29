@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PGT - Compras</title>
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="stylesheet" href="compras.css" />
+  </head>
+  <body data-page="compras">
+    <div class="app">
+      <aside class="sidebar">
+      </aside>
+
+      <main class="main">
+        <div class="topbar">
+          <div class="title">
+            <div class="muted" style="font-weight: 900; letter-spacing: 0.6px;">COMPRAS</div>
+            <h1>Solicitudes</h1>
+            <p>Pendientes · Enviadas · Compra realizada</p>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;">
+            <button class="btn" id="setComprasTokenBtn" type="button">Modo compras</button>
+            <a class="btn primary" href="../nueva-solicitud/nueva-solicitud.html">Nueva solicitud</a>
+          </div>
+        </div>
+
+        <section class="grid" style="grid-template-columns: 1fr;">
+          <div class="card">
+            <div class="list-head">
+              <div class="list-kpis">
+                <div class="kpi-mini pending">
+                  <div class="k">Pendientes</div>
+                  <div class="v" id="countPending">0</div>
+                </div>
+                <div class="kpi-mini sent">
+                  <div class="k">Enviadas</div>
+                  <div class="v" id="countSent">0</div>
+                </div>
+                <div class="kpi-mini done">
+                  <div class="k">Compra realizada</div>
+                  <div class="v" id="countDone">0</div>
+                </div>
+              </div>
+              <div class="muted" style="font-size:12px;">Indicador de color al final según estado.</div>
+            </div>
+
+            <div id="comprasList" class="list-body">Cargando…</div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="../../shared/layout.js"></script>
+    <script src="../../shared/api.js"></script>
+    <script src="compras.js"></script>
+  </body>
+</html>

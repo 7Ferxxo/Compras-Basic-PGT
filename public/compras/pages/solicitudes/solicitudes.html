@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PGT - Solicitudes</title>
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="stylesheet" href="solicitudes.css" />
+  </head>
+  <body data-page="solicitudes">
+    <div class="app">
+      <aside class="sidebar">
+      </aside>
+
+      <main class="main">
+        <div class="topbar">
+          <div class="title">
+            <div class="muted" style="font-weight: 900; letter-spacing: 0.6px;">SOLICITUDES</div>
+            <h1>Solicitudes de compra</h1>
+            <p>Lista con filtros por tienda, estado y búsqueda.</p>
+          </div>
+          <a class="btn primary" href="../nueva-solicitud/nueva-solicitud.html">Nueva solicitud</a>
+        </div>
+
+        <section class="card">
+          <form id="filtersForm" class="filters">
+            <label>
+              Búsqueda
+              <input id="filterQ" placeholder="cliente / código / link" />
+            </label>
+            <label>
+              Tienda
+              <select id="filterStore">
+                <option value="">Cargando…</option>
+              </select>
+            </label>
+            <label>
+              Estado
+              <select id="filterStatus">
+                <option value="">Todos</option>
+                <option>Borrador</option>
+                <option>Pendiente comprobante</option>
+                <option>Enviada al Supervisor</option>
+                <option>Compra realizada</option>
+                <option>Completada</option>
+              </select>
+            </label>
+            <div>
+              <button class="btn" type="submit">Aplicar</button>
+            </div>
+          </form>
+
+          <div id="requestsTable" class="muted">Cargando…</div>
+          <div id="pager"></div>
+        </section>
+      </main>
+    </div>
+
+    <script src="../../shared/layout.js"></script>
+    <script src="../../shared/api.js"></script>
+    <script src="solicitudes.js"></script>
+  </body>
+</html>

@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PGT - Nueva Solicitud</title>
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="stylesheet" href="nueva-solicitud.css" />
+  </head>
+  <body data-page="nueva-solicitud">
+    <div class="app">
+      <aside class="sidebar">
+      </aside>
+
+      <main class="main">
+        <div class="topbar">
+          <div class="title">
+            <div class="muted" style="font-weight: 900; letter-spacing: 0.6px;">CREAR</div>
+            <h1>Nueva solicitud</h1>
+            <p>Genera el recibo y crea la solicitud (BASIC) en Compras.</p>
+          </div>
+          <a class="btn" href="../solicitudes/solicitudes.html">Cancelar</a>
+        </div>
+
+        <section class="grid">
+          <form id="receiptForm" class="card request-card receipt-card" style="grid-column: span 12;">
+            <div class="section" style="border-top:none;padding-top:0;margin-top:0;">
+              <div class="section-title">Recibo</div>
+              <div id="receiptError" class="hint" style="display:none;"></div>
+            </div>
+
+            <div class="form-grid receipt-grid">
+              <div class="col">
+                <div class="section">
+                  <div class="section-title">Datos del Cliente</div>
+                  <div class="row-3">
+                    <div class="field" style="margin-top:0;">
+                      <div class="label">Casillero</div>
+                      <input id="rCasillero" placeholder="Casillero" />
+                      <div id="rCasilleroStatus" class="muted" style="margin-top:6px;font-size:12px;"></div>
+                    </div>
+                    <div class="field" style="margin-top:0;">
+                      <div class="label">Nombre</div>
+                      <input id="rCliente" placeholder="Nombre" />
+                    </div>
+                    <div class="field" style="margin-top:0;">
+                      <div class="label">Email del cliente</div>
+                      <input id="rEmail" type="email" placeholder="cliente@correo.com" />
+                    </div>
+                  </div>
+                  <div class="row-2">
+                    <div class="field">
+                      <div class="label">Sucursal</div>
+                      <select id="rSucursal">
+                        <option value="">Selecciona...</option>
+                        <option value="DAV">DAV</option>
+                        <option value="WEST">WEST</option>
+                        <option value="BGA">BGA</option>
+                        <option value="TA">TA</option>
+                        <option value="SF">SF</option>
+                        <option value="CP">CP</option>
+                        <option value="EAST">EAST</option>
+                      </select>
+                    </div>
+                    <div class="field">
+                      <div class="label">Fecha</div>
+                      <input id="rFecha" type="date" />
+                    </div>
+                  </div>
+                </div>
+
+                <div class="section">
+                  <div class="section-title">Pago</div>
+                  <div class="field" style="margin-top: 0;">
+                    <input id="rMetodoPago" type="hidden" />
+                    <div class="pay-grid" id="rPayGrid">
+                      <div class="pay-option" role="button" tabindex="0" data-method="Transferencia">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <path
+                            d="M4 10h16M6 10V7l6-3 6 3v3M6 10v9m12-9v9M4 19h16"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          />
+                        </svg>
+                        <div class="t">Transferencia</div>
+                      </div>
+                      <div class="pay-option" role="button" tabindex="0" data-method="Yappy">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <path
+                            d="M8 7h8m-8 4h8m-8 4h6M7 3h10a2 2 0 0 1 2 2v14l-3-2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          />
+                        </svg>
+                        <div class="t">Yappy</div>
+                      </div>
+                      <div class="pay-option" role="button" tabindex="0" data-method="Efectivo">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <path
+                            d="M3 7h18v10H3V7Zm3 3h6m-6 4h4m7-4h2m-2 4h2"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          />
+                        </svg>
+                        <div class="t">Efectivo</div>
+                      </div>
+                      <div class="pay-option" role="button" tabindex="0" data-method="Tarjeta">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <path
+                            d="M3 7h18v10H3V7Zm0 3h18M7 14h4"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          />
+                        </svg>
+                        <div class="t">Tarjeta</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <input id="rTipoServicio" type="hidden" value="BASIC" />
+                </div>
+
+                <div class="section">
+                  <div class="section-title">Evidencias</div>
+                  <div class="dropzones">
+                    <div class="dropzone" data-input="quoteScreenshots" role="button" tabindex="0">
+                      <div class="dz-ico" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none">
+                          <path
+                            d="M12 3v10m0 0 4-4m-4 4-4-4M4 14v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          />
+                        </svg>
+                      </div>
+                      <div class="dz-title">Capturas de cotización</div>
+                      <div class="dz-sub" id="metaScreenshots">Pega (Ctrl+V) o doble click para seleccionar</div>
+                      <input id="quoteScreenshots" class="dz-input" type="file" multiple />
+                    </div>
+
+                    <div class="dropzone" data-input="paymentProof" role="button" tabindex="0">
+                      <div class="dz-ico" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none">
+                          <path
+                            d="M7 3h7l3 3v15a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linejoin="round"
+                          />
+                          <path d="M14 3v4h4" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+                          <path d="M8 12h8M8 16h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        </svg>
+                      </div>
+                      <div class="dz-title">Comprobante</div>
+                      <div class="dz-sub" id="metaPaymentProof">Pega (Ctrl+V) o doble click para seleccionar</div>
+                      <input id="paymentProof" class="dz-input" type="file" />
+                    </div>
+                  </div>
+
+                  <textarea id="pasteCatcher" class="paste-catcher" aria-hidden="true" tabindex="-1"></textarea>
+                </div>
+              </div>
+
+              <div class="col">
+                <div class="section">
+                  <div class="section-title">Detalle</div>
+                  <div class="field" style="margin-top:0;">
+                    <div class="label">Descripción</div>
+                    <textarea id="rDescripcion" placeholder="Ej: Compra en Amazon"></textarea>
+                  </div>
+                  <div class="row-2">
+                    <div class="field">
+                      <div class="label">Precio</div>
+                      <input id="rPrecio" type="number" step="0.01" min="0" placeholder="0.00" />
+                    </div>
+                    <div class="field">
+                      <div class="label">Link del producto</div>
+                      <input id="rLinkProducto" type="url" placeholder="https://..." />
+                    </div>
+                  </div>
+
+                  <div class="receipt-summary" style="margin-top: 12px;">
+                    <div style="display:flex;justify-content:space-between;gap:12px;">
+                      <span>Comisión</span>
+                      <b id="rComision">B/. 0.00</b>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;gap:12px;margin-top:6px;">
+                      <span>Total</span>
+                      <b id="rTotal">B/. 0.00</b>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="actionbar">
+              <a class="btn" href="/dashboard">Historial de recibos</a>
+              <div class="action-right">
+                <button class="btn danger" id="rSubmitBtn" type="submit">
+                  <span class="btn-ico" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                      <path
+                        d="M7 3h7l3 3v15a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linejoin="round"
+                      />
+                      <path d="M14 3v4h4" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+                      <path d="M8 12h8M8 16h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    </svg>
+                  </span>
+                  Generar Recibo
+                </button>
+              </div>
+            </div>
+          </form>
+        </section>
+      </main>
+    </div>
+
+    <script src="../../shared/layout.js"></script>
+    <script src="../../shared/api.js"></script>
+    <script src="nueva-solicitud.js"></script>
+  </body>
+</html>

@@ -1,0 +1,6 @@
+@import url("../../shared/main.css");
+
+#recentActivity .table th,
+#recentActivity .table td{
+  padding: 10px 10px;
+}

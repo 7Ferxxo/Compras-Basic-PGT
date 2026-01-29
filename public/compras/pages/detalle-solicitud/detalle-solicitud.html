@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PGT - Detalle</title>
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="stylesheet" href="detalle-solicitud.css" />
+  </head>
+  <body data-page="detalle-solicitud">
+    <div class="app">
+      <aside class="sidebar">
+      </aside>
+
+      <main class="main">
+        <div class="topbar">
+          <div class="title">
+            <div class="muted" style="font-weight: 900; letter-spacing: 0.6px;">DETALLE</div>
+            <h1>Solicitud <span id="code">—</span></h1>
+            <p>Datos, adjuntos y bitácora.</p>
+          </div>
+          <a class="btn" href="../solicitudes/solicitudes.html">Volver</a>
+        </div>
+
+        <div id="detailRoot" class="grid">
+          <div class="card" style="grid-column: span 7;">
+            <h2>Datos</h2>
+            <div class="split">
+              <div>
+                <div class="muted">Estado</div>
+                <div id="status" style="margin: 6px 0 12px;">—</div>
+                <div class="muted">Cliente</div>
+                <div id="client" style="font-weight: 900; margin: 6px 0 12px;">—</div>
+                <div class="muted">Método de pago</div>
+                <div id="paymentMethod" style="font-weight: 900; margin: 6px 0 12px;">—</div>
+                <div class="muted">Tienda</div>
+                <div id="store" style="font-weight: 900; margin: 6px 0 12px;">—</div>
+                <div class="muted">Link del artículo</div>
+                <div id="link" style="margin-top: 6px;">—</div>
+              </div>
+              <div>
+                <div class="muted">Correo (si aplica)</div>
+                <div id="accountEmail" style="margin: 6px 0 12px;">—</div>
+                <div class="muted">Opciones / variantes</div>
+                <div id="options" style="margin: 6px 0 12px;">—</div>
+                <div class="muted">Cantidad de artículos</div>
+                <div id="qty" style="margin: 6px 0 12px;">—</div>
+                <div class="muted">Total cotizado</div>
+                <div id="quotedTotal" style="font-weight: 900; margin: 6px 0 12px;">—</div>
+                <div class="muted">Cargos</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px;">
+                  <div class="card" style="box-shadow: none; background: rgba(255, 255, 255, 0.55);">
+                    <div class="muted">Dirección residencial</div>
+                    <div id="chargeResidential" style="font-weight: 900;">—</div>
+                  </div>
+                  <div class="card" style="box-shadow: none; background: rgba(255, 255, 255, 0.55);">
+                    <div class="muted">Tarjeta americana</div>
+                    <div id="chargeCard" style="font-weight: 900;">—</div>
+                  </div>
+                </div>
+                <div style="margin-top: 10px;">
+                  <div class="muted">Total + cargos</div>
+                  <div id="grandTotal" style="font-weight: 1000; font-size: 22px;">—</div>
+                </div>
+              </div>
+            </div>
+            <div style="margin-top: 12px;">
+              <div class="muted">Notas</div>
+              <div id="notes" style="margin-top: 6px;">—</div>
+            </div>
+          </div>
+
+          <div class="card" style="grid-column: span 5;">
+            <h2>Acciones</h2>
+            <div class="hint">
+              <b>Enviar al Supervisor</b> (MVP) registra el estado y un log interno; no hay integración real.
+            </div>
+            <div style="margin-top: 12px;">
+              <label>
+                Nota de envío (opcional)
+                <input id="sendNote" placeholder="Ej: cliente confirmó, comprobante recibido." />
+              </label>
+              <label style="margin-top: 10px;">
+                Comprobante de pago (si aún no está adjunto)
+                <input id="sendPaymentProof" type="file" />
+              </label>
+              <div class="actions">
+                <button class="btn primary" id="sendBtn" type="button">Enviar al Supervisor</button>
+              </div>
+            </div>
+            <hr style="border: none; border-top: 1px solid rgba(15, 23, 42, 0.1); margin: 16px 0;" />
+            <form id="statusForm">
+              <label>
+                Cambiar estado (manual)
+                <select id="statusSelect">
+                  <option>Borrador</option>
+                  <option>Pendiente comprobante</option>
+                  <option>Enviada al Supervisor</option>
+                  <option>Compra realizada</option>
+                  <option>Completada</option>
+                </select>
+              </label>
+              <label style="margin-top: 10px;">
+                Nota (opcional)
+                <input id="statusNote" placeholder="Ej: comprobante recibido / completado." />
+              </label>
+              <div class="actions">
+                <button class="btn" type="submit">Guardar</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="card" style="grid-column: span 6;">
+            <h2>Adjuntos — Capturas</h2>
+            <div id="attachmentsQuote" class="muted">—</div>
+          </div>
+
+          <div class="card" style="grid-column: span 6;">
+            <h2>Adjuntos — Comprobante</h2>
+            <div id="attachmentsPayment" class="muted">—</div>
+          </div>
+
+          <div class="card" style="grid-column: span 12;">
+            <h2>Bitácora</h2>
+            <div id="logs" class="muted">—</div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script src="../../shared/layout.js"></script>
+    <script src="../../shared/api.js"></script>
+    <script src="detalle-solicitud.js"></script>
+  </body>
+</html>

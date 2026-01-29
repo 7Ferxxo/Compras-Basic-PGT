@@ -21,6 +21,7 @@
                     <div class="form-group">
                         <label for="casillero">Número de Casillero:</label>
                         <input type="text" id="casillero" name="casillero" required>
+                        <div id="casillero-status" class="field-hint" aria-live="polite"></div>
                     </div>
                     <div class="form-group">
                         <label for="cliente">Recibimos de:</label>
@@ -62,6 +63,13 @@
                             <option value="Yappy">Yappy</option>
                         </select>
                     </div>
+                    <div class="form-group">
+                        <label for="tipo_servicio">Servicio:</label>
+                        <select id="tipo_servicio" name="tipo_servicio">
+                            <option value="OTRO">Otro</option>
+                            <option value="BASIC">Basic / Compra Asistida</option>
+                        </select>
+                    </div>
                 </div>
             </section>
 
@@ -75,6 +83,10 @@
                     <div class="form-group">
                         <label for="item-precio">Precio</label>
                         <input type="number" id="item-precio" step="0.01" placeholder="0.00">
+                    </div>
+                    <div class="form-group" id="link-producto-group" style="display:none;">
+                        <label for="link_producto">Link del Producto (solo Basic):</label>
+                        <input type="url" id="link_producto" name="link_producto" placeholder="https://...">
                     </div>
                 </div>
 
@@ -93,7 +105,9 @@
             <button type="submit" class="btn-submit">Generar Recibo</button>
         </form>
         <div class="dashboard-link">
-            <a href="dashboard.html">Ver Historial de Recibos →</a>
+            <a href="/dashboard">Ver Historial de Recibos →</a>
+            <span style="margin: 0 10px; color: #9ca3af;">|</span>
+            <a href="/compras">Ir a Compras →</a>
         </div>
     </main>
     <script src="main.js"></script>
