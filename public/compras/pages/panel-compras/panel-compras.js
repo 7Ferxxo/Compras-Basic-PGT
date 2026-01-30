@@ -74,7 +74,9 @@
           ? "pending"
           : status === "Compra realizada" || status === "Completada"
             ? "done"
-            : "draft";
+            : status === "Cancelada"
+              ? "cancelled"
+              : "draft";
     return `<span class="pill ${cls}">${escapeHtml(status)}</span>`;
   }
 

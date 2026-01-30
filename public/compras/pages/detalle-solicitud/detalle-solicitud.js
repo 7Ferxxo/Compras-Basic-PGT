@@ -1,10 +1,10 @@
-(function () {
+﻿(function () {
   function $(sel) {
     return document.querySelector(sel);
   }
 
   function escapeHtml(s) {
-    return String(s ?? "")
+    return String(s ? "")
       .replaceAll("&", "&amp;")
       .replaceAll("<", "&lt;")
       .replaceAll(">", "&gt;")
@@ -13,7 +13,7 @@
   }
 
   function linkifyText(s) {
-    const raw = String(s ?? "");
+    const raw = String(s ? "");
     if (!raw) return "";
     const parts = raw.split(/(https?:\/\/[^\s<>"']+)/g);
     return parts
@@ -40,7 +40,9 @@
           ? "pending"
           : status === "Compra realizada" || status === "Completada"
             ? "done"
-            : "draft";
+            : status === "Cancelada"
+              ? "cancelled"
+              : "draft";
     return `<span class="pill ${cls}">${escapeHtml(status)}</span>`;
   }
 
@@ -59,7 +61,7 @@
   }
 
   function groupAttachments(attachments) {
-    const groups = { QUOTE_SCREENSHOT: [], PAYMENT_PROOF: [] };
+    const groups = { QUOTE_SCREENSHOT: [], PAYMENT_PROOF: [], ORDER_DOC: [] };
     (attachments || []).forEach((a) => {
       if (!groups[a.type]) groups[a.type] = [];
       groups[a.type].push(a);
@@ -77,7 +79,7 @@
     const itemLink = String(r.item_link || "").trim();
     $("#link").innerHTML = itemLink
       ? `<a href="${escapeHtml(itemLink)}" target="_blank" rel="noreferrer">${escapeHtml(itemLink)}</a>`
-      : "â€”";
+      : "?";
     $("#options").textContent = r.item_options || "—";
     $("#qty").textContent = String(r.item_quantity || 1);
     $("#quotedTotal").textContent = money(r.quoted_total);
@@ -100,6 +102,10 @@
       ? groups.PAYMENT_PROOF.map(renderAttachment).join("")
       : `<div class="muted">Sin comprobante.</div>`;
 
+    $("#attachmentsOrder").innerHTML = groups.ORDER_DOC.length
+      ? groups.ORDER_DOC.map(renderAttachment).join("")
+      : `<div class="muted">Sin orden/comprobante final.</div>`;
+
     $("#logs").innerHTML = r.logs?.length
       ? `<table class="table">
           <thead><tr><th>Fecha</th><th>Acción</th><th>De</th><th>A</th><th>Nota</th></tr></thead>
@@ -121,7 +127,9 @@
         </table>`
       : `<div class="muted">Sin eventos.</div>`;
 
-    $("#sendBtn").disabled = !groups.PAYMENT_PROOF.length || r.status === "Enviada al Supervisor";
+    $("#sendBtn").disabled =
+      !groups.PAYMENT_PROOF.length ||
+      ["Enviada al Supervisor", "Compra realizada", "Completada", "Cancelada"].includes(r.status);
     if ($("#statusSelect")) $("#statusSelect").value = r.status;
   }
 
@@ -168,6 +176,28 @@
         }
       });
 
+      $("#orderDocBtn")?.addEventListener("click", async () => {
+        const file = $("#orderDocFile")?.files?.[0];
+        if (!file) {
+          alert("Selecciona un archivo para subir.");
+          return;
+        }
+        try {
+          $("#orderDocBtn").disabled = true;
+          const fd = new FormData();
+          fd.set("type", "ORDER_DOC");
+          fd.append("file", file);
+          await window.PGT.api.uploadAttachment(id, fd);
+          const updated = await window.PGT.api.getRequest(id);
+          renderDetail(updated);
+          $("#orderDocFile").value = "";
+        } catch (e) {
+          alert(e.message);
+        } finally {
+          $("#orderDocBtn").disabled = false;
+        }
+      });
+
       $("#statusForm")?.addEventListener("submit", async (e) => {
         e.preventDefault();
         const status = $("#statusSelect")?.value;
@@ -189,3 +219,6 @@
 
   document.addEventListener("DOMContentLoaded", init);
 })();
+
+
+

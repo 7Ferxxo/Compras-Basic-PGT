@@ -29,6 +29,11 @@ class FacturaController extends Controller
         }
 
         $rutaCompleta = $rutaCarpeta . '/' . $nombreArchivo;
+        $pdfBytes = null;
+
+        if (!file_exists($rutaCompleta) && $recibo->pdf_blob) {
+            file_put_contents($rutaCompleta, $recibo->pdf_blob);
+        }
 
         if (!file_exists($rutaCompleta)) {
             $monto = (float) $recibo->monto;
@@ -43,11 +48,24 @@ class FacturaController extends Controller
             $itbms = $monto - $subtotal;
 
             $pdf = Pdf::loadView('pdf.recibo', compact('recibo', 'subtotal', 'itbms'));
+            $pdfBytes = $pdf->output();
             $pdf->save($rutaCompleta);
+
+            if (!$recibo->pdf_blob) {
+                $recibo->pdf_blob = $pdfBytes;
+                $recibo->save();
+            }
+        } elseif (!$recibo->pdf_blob && is_file($rutaCompleta)) {
+            $pdfBytes = file_get_contents($rutaCompleta);
+            $recibo->pdf_blob = $pdfBytes;
+            $recibo->save();
         }
 
         if ($recibo->pdf_filename !== $nombreArchivo) {
             $recibo->pdf_filename = $nombreArchivo;
+            if ($pdfBytes !== null) {
+                $recibo->pdf_blob = $pdfBytes;
+            }
             $recibo->save();
         }
 
@@ -154,7 +172,7 @@ class FacturaController extends Controller
                             'evidencia_pago_url' => asset('facturas_pdf/' . $nombreArchivo),
                         ];
 
-                        $timeout = (int) (config('services.compras.timeout_seconds') ?? 5);
+                        $timeout = (int) config('services.compras.timeout_seconds', 5);
                         $http = Http::timeout($timeout)->acceptJson();
 
                         $token = config('services.compras.webhook_token');
@@ -224,17 +242,17 @@ class FacturaController extends Controller
         try {
             $casillero = trim((string) $casillero);
 
-            $crmLookupUrl = (string) (config('services.crm.lookup_url') ?? '');
+            $crmLookupUrl = (string) config('services.crm.lookup_url', '');
             if ($crmLookupUrl !== '') {
                 try {
                     $url = str_contains($crmLookupUrl, '{casillero}')
                         ? str_replace('{casillero}', urlencode($casillero), $crmLookupUrl)
                         : rtrim($crmLookupUrl, '/') . '/' . urlencode($casillero);
 
-                    $timeout = (int) (config('services.crm.timeout_seconds') ?? 5);
+                    $timeout = (int) config('services.crm.timeout_seconds', 5);
                     $http = Http::timeout($timeout)->acceptJson();
 
-                    $token = (string) (config('services.crm.token') ?? '');
+                    $token = (string) config('services.crm.token', '');
                     if ($token !== '') {
                         $http = $http->withToken($token);
                     }

@@ -35,3 +35,4 @@ Route::post('/api/purchase-requests/receipt/{reciboId}/attachments', [PurchaseRe
 Route::post('/api/purchase-requests', [PurchaseRequestsController::class, 'store']);
 Route::patch('/api/purchase-requests/{id}/status', [PurchaseRequestsController::class, 'patchStatus']);
 Route::post('/api/purchase-requests/{id}/send', [PurchaseRequestsController::class, 'sendToSupervisor']);
+Route::post('/api/purchase-requests/{id}/attachments', [PurchaseRequestsController::class, 'uploadAttachment']);

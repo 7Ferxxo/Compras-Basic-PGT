@@ -24,6 +24,15 @@
     el.innerHTML = escapeHtml(message);
   }
 
+  function getValue(id) {
+    return (document.getElementById(id)?.value || "").trim();
+  }
+
+  function setText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value || "-";
+  }
+
   function formatBalboa(value) {
     const n = Number(value);
     if (!Number.isFinite(n)) return "B/. 0.00";
@@ -101,6 +110,8 @@
     const totEl = $("#rTotal");
     if (comEl) comEl.textContent = formatBalboa(comision);
     if (totEl) totEl.textContent = formatBalboa(total);
+
+    updateSummary();
   }
 
   function wireEvidenceDropzones() {
@@ -208,7 +219,74 @@
     return hoy.toISOString().split("T")[0];
   }
 
+  let currentStep = 1;
+  const totalSteps = 4;
+
+  function updateSummary() {
+    if (currentStep !== 4) return;
+    setText("sumCliente", getValue("rCliente"));
+    setText("sumCasillero", getValue("rCasillero"));
+    setText("sumEmail", getValue("rEmail"));
+    setText("sumSucursal", getValue("rSucursal"));
+    setText("sumFecha", getValue("rFecha"));
+    setText("sumMetodo", getReceiptMethod() || "-");
+    setText("sumPrecio", getValue("rPrecio") ? `B/. ${Number(getValue("rPrecio") || 0).toFixed(2)}` : "-");
+    setText("sumComision", $("#rComision")?.textContent || "-");
+    setText("sumTotal", $("#rTotal")?.textContent || "-");
+    setText("sumLink", getValue("rLinkProducto") || "-");
+    setText("sumDesc", getValue("rDescripcion") || "-");
+
+    const screenshots = $("#quoteScreenshots")?.files || [];
+    const proof = $("#paymentProof")?.files?.[0];
+    const evidenceText = `${screenshots.length} captura(s)${proof ? " + comprobante" : ""}`;
+    setText("sumEvidencias", screenshots.length || proof ? evidenceText : "Sin evidencias");
+  }
+
+  function setStep(step) {
+    currentStep = Math.min(Math.max(1, step), totalSteps);
+    document.querySelectorAll(".wizard-section").forEach((el) => {
+      const s = Number(el.getAttribute("data-step") || 0);
+      el.classList.toggle("active", s === currentStep);
+    });
+    document.querySelectorAll(".step-chip[data-step]").forEach((chip) => {
+      const s = Number(chip.getAttribute("data-step") || 0);
+      chip.classList.toggle("active", s === currentStep);
+    });
+
+    $("#wizardBack")?.classList.toggle("is-hidden", currentStep === 1);
+    $("#wizardNext")?.classList.toggle("is-hidden", currentStep === totalSteps);
+    $("#rSubmitBtn")?.classList.toggle("is-hidden", currentStep !== totalSteps);
+
+    updateSummary();
+    showReceiptError(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showAndFail(message) {
+    showReceiptError(message);
+    return false;
+  }
+
+  function validateStep(step) {
+    if (step == 1) {
+      if (!getValue("rCasillero")) return showAndFail("Casillero es obligatorio.");
+      if (!getValue("rCliente")) return showAndFail("Nombre del cliente es obligatorio.");
+      if (!getValue("rEmail")) return showAndFail("Email del cliente es obligatorio.");
+      if (!getValue("rSucursal")) return showAndFail("Sucursal es obligatoria.");
+      if (!getValue("rFecha")) return showAndFail("Fecha es obligatoria.");
+      return true;
+    }
+    if (step == 2) {
+      if (!getReceiptMethod()) return showAndFail("Metodo de pago es obligatorio.");
+      const precio = Number(getValue("rPrecio"));
+      if (!Number.isFinite(precio) || precio <= 0) return showAndFail("Precio invalido.");
+      return true;
+    }
+    return true;
+  }
+
   async function init() {
+    document.body.classList.add("wizard-ready");
     const rFecha = $("#rFecha");
     if (rFecha && !rFecha.value) rFecha.value = todayIso();
 
@@ -277,6 +355,23 @@
     });
     $("#rCasillero")?.addEventListener("blur", lookupCliente);
 
+    $("#wizardBack")?.addEventListener("click", () => setStep(currentStep - 1));
+    $("#wizardNext")?.addEventListener("click", () => {
+      if (!validateStep(currentStep)) return;
+      setStep(currentStep + 1);
+    });
+    document.querySelectorAll(".step-chip[data-step]").forEach((chip) => {
+      chip.addEventListener("click", () => {
+        const target = Number(chip.getAttribute("data-step") || 1);
+        if (target > currentStep) {
+          for (let s = currentStep; s < target; s += 1) {
+            if (!validateStep(s)) return;
+          }
+        }
+        setStep(target);
+      });
+    });
+
     $("#receiptForm")?.addEventListener("submit", async (e) => {
       e.preventDefault();
       showReceiptError(null);
@@ -327,7 +422,7 @@
         const proof = $("#paymentProof")?.files?.[0];
         const reciboId = data?.id_recibo;
 
-        if (reciboId && (screenshots.length || proof)) {
+        if (reciboId) {
           try {
             const fd = new FormData();
             Array.from(screenshots).forEach((f) => fd.append("quoteScreenshots", f));
@@ -357,6 +452,23 @@
         $("#rSubmitBtn").disabled = false;
       }
     });
+
+    const summaryFields = [
+      "#rCliente",
+      "#rCasillero",
+      "#rEmail",
+      "#rSucursal",
+      "#rFecha",
+      "#rLinkProducto",
+      "#rDescripcion",
+      "#rPrecio",
+    ];
+    summaryFields.forEach((sel) => {
+      document.querySelector(sel)?.addEventListener("input", updateSummary);
+      document.querySelector(sel)?.addEventListener("change", updateSummary);
+    });
+
+    setStep(1);
   }
 
   document.addEventListener("DOMContentLoaded", () => {

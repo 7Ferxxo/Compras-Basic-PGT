@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Http\Controllers\Compras;
 
@@ -18,6 +18,32 @@ class PurchaseRequestsController extends Controller
 {
     public function __construct(private readonly PurchaseRequestService $service)
     {
+    }
+
+    private function allowedStatuses(): array
+    {
+        return [
+            'Borrador',
+            'Pendiente comprobante',
+            'Enviada al Supervisor',
+            'Compra realizada',
+            'Completada',
+            'Cancelada',
+        ];
+    }
+
+    private function storeNameExpression(string $storeAlias, string $customAlias): string
+    {
+        $driver = DB::connection()->getDriverName();
+        $concat = $driver === 'sqlite'
+            ? "{$storeAlias}.name || ' - ' || {$customAlias}"
+            : "CONCAT({$storeAlias}.name, ' - ', {$customAlias})";
+
+        return "CASE
+                    WHEN {$customAlias} IS NOT NULL AND {$customAlias} <> ''
+                      THEN {$concat}
+                    ELSE {$storeAlias}.name
+                END AS store_name";
     }
 
     private function isComprasAuthorized(Request $request): bool
@@ -75,6 +101,7 @@ class PurchaseRequestsController extends Controller
         $total = (int) $query->clone()->count();
 
         $offset = ($page - 1) * $pageSize;
+        $storeNameExpr = $this->storeNameExpression('s', 'pr.store_custom_name');
         $rows = $query
             ->select([
                 'pr.id',
@@ -100,13 +127,7 @@ class PurchaseRequestsController extends Controller
                         FROM request_attachments a
                        WHERE a.request_id = pr.id AND a.type = 'QUOTE_SCREENSHOT') AS quote_screenshots_count",
                 ),
-                DB::raw(
-                    "CASE
-                        WHEN pr.store_custom_name IS NOT NULL AND pr.store_custom_name <> ''
-                          THEN s.name || ' - ' || pr.store_custom_name
-                        ELSE s.name
-                     END AS store_name",
-                ),
+                DB::raw($storeNameExpr),
             ])
             ->orderByDesc('pr.created_at')
             ->limit($pageSize)
@@ -126,19 +147,14 @@ class PurchaseRequestsController extends Controller
 
     public function show(string $id)
     {
+        $storeNameExpr = $this->storeNameExpression('s', 'pr.store_custom_name');
         $row = DB::table('purchase_requests as pr')
             ->join('stores as s', 's.id', '=', 'pr.store_id')
             ->leftJoin('store_rules as r', 'r.store_id', '=', 'pr.store_id')
             ->where('pr.id', (int) $id)
             ->select([
                 'pr.*',
-                DB::raw(
-                    "CASE
-                        WHEN pr.store_custom_name IS NOT NULL AND pr.store_custom_name <> ''
-                          THEN s.name || ' - ' || pr.store_custom_name
-                        ELSE s.name
-                     END AS store_name",
-                ),
+                DB::raw($storeNameExpr),
                 'r.requires_residential_address',
                 'r.residential_fee_per_item',
                 'r.requires_american_card',
@@ -174,7 +190,7 @@ class PurchaseRequestsController extends Controller
             ->orderBy('created_at')
             ->get();
 
-        $hasAccountPassword = (bool) ($row->account_password_enc ?? null);
+        $hasAccountPassword = (bool) ($row->account_password_enc ? null);
         unset($row->account_password_enc);
 
         return response()->json([
@@ -207,7 +223,7 @@ class PurchaseRequestsController extends Controller
         ]);
 
         $storeId = (int) $validated['storeId'];
-        if ($storeId === 7 && trim((string) ($validated['storeCustomName'] ?? '')) === '') {
+        if ($storeId === 7 && trim((string) ($validated['storeCustomName'] ? '')) === '') {
             return response()->json(['error' => 'storeCustomName es requerido cuando la tienda es OTROS'], 400);
         }
 
@@ -221,7 +237,7 @@ class PurchaseRequestsController extends Controller
         }
 
         $quotedTotal = (float) $validated['quotedTotal'];
-        $itemQuantity = (int) ($validated['itemQuantity'] ?? 1);
+        $itemQuantity = (int) ($validated['itemQuantity'] ? 1);
         $charges = $this->service->computeCharges($storeId, $itemQuantity, $quotedTotal);
 
         $paymentProof = $request->file('paymentProof');
@@ -229,7 +245,7 @@ class PurchaseRequestsController extends Controller
         $code = $this->service->nextCode();
 
         $passwordEnc = null;
-        $accountPassword = trim((string) ($validated['accountPassword'] ?? ''));
+        $accountPassword = trim((string) ($validated['accountPassword'] ? ''));
         if ($accountPassword !== '') {
             $passwordEnc = Crypt::encryptString($accountPassword);
         }
@@ -238,19 +254,19 @@ class PurchaseRequestsController extends Controller
             'code' => $code,
             'client_name' => $validated['clientName'],
             'client_code' => $validated['clientCode'],
-            'contact_channel' => $validated['contactChannel'] ?? null,
-            'payment_method' => $validated['paymentMethod'] ?? null,
-            'account_email' => $validated['accountEmail'] ?? null,
+            'contact_channel' => $validated['contactChannel'] ? null,
+            'payment_method' => $validated['paymentMethod'] ? null,
+            'account_email' => $validated['accountEmail'] ? null,
             'account_password_enc' => $passwordEnc,
             'store_id' => $storeId,
-            'store_custom_name' => $storeId === 7 ? ($validated['storeCustomName'] ?? null) : null,
+            'store_custom_name' => $storeId === 7 ? ($validated['storeCustomName'] ? null) : null,
             'item_link' => $validated['itemLink'],
-            'item_options' => $validated['itemOptions'] ?? null,
+            'item_options' => $validated['itemOptions'] ? null,
             'item_quantity' => $itemQuantity,
             'quoted_total' => $quotedTotal,
             'residential_charge' => $charges['residentialCharge'],
             'american_card_charge' => $charges['americanCardCharge'],
-            'notes' => $validated['notes'] ?? null,
+            'notes' => $validated['notes'] ? null,
             'status' => $status,
         ]);
 
@@ -291,8 +307,9 @@ class PurchaseRequestsController extends Controller
 
     public function patchStatus(Request $request, string $id)
     {
+        $allowed = $this->allowedStatuses();
         $validated = $request->validate([
-            'status' => ['required', 'string', 'max:50', Rule::in(['Borrador', 'Pendiente comprobante', 'Enviada al Supervisor', 'Compra realizada', 'Completada'])],
+            'status' => ['required', 'string', 'max:50', Rule::in($allowed)],
             'note' => ['nullable', 'string', 'max:1000'],
         ]);
 
@@ -303,8 +320,8 @@ class PurchaseRequestsController extends Controller
 
         $nextStatus = $validated['status'];
 
-        if ($nextStatus === 'Compra realizada' && !$this->isComprasAuthorized($request)) {
-            return response()->json(['error' => 'No autorizado para marcar Compra realizada'], 403);
+        if (in_array($nextStatus, ['Compra realizada', 'Completada'], true) && !$this->isComprasAuthorized($request)) {
+            return response()->json(['error' => 'No autorizado para cambiar a estado de compras'], 403);
         }
 
         if ($nextStatus === 'Enviada al Supervisor') {
@@ -318,6 +335,12 @@ class PurchaseRequestsController extends Controller
         }
 
         $fromStatus = $purchaseRequest->status;
+        if ($fromStatus !== $nextStatus && $nextStatus === 'Compra realizada' && $fromStatus !== 'Enviada al Supervisor') {
+            return response()->json(['error' => 'Solo se puede marcar Compra realizada después de Enviada al Supervisor'], 400);
+        }
+        if ($fromStatus !== $nextStatus && $nextStatus === 'Completada' && $fromStatus !== 'Compra realizada') {
+            return response()->json(['error' => 'Solo se puede completar después de Compra realizada'], 400);
+        }
         $purchaseRequest->status = $nextStatus;
         $purchaseRequest->save();
 
@@ -326,7 +349,7 @@ class PurchaseRequestsController extends Controller
             'action' => 'status_change',
             'from_status' => $fromStatus,
             'to_status' => $nextStatus,
-            'note' => trim((string) ($validated['note'] ?? '')) ?: null,
+            'note' => trim((string) ($validated['note'] ? '')) ?: null,
             'created_at' => now(),
         ]);
 
@@ -340,7 +363,7 @@ class PurchaseRequestsController extends Controller
             return response()->json(['error' => 'Solicitud no encontrada'], 404);
         }
 
-        $note = trim((string) ($request->input('note') ?? '')) ?: null;
+        $note = trim((string) ($request->input('note') ? '')) ?: null;
 
         $file = $request->file('paymentProof');
         if ($file) {
@@ -379,15 +402,50 @@ class PurchaseRequestsController extends Controller
         return response()->json(['ok' => true, 'status' => 'Enviada al Supervisor']);
     }
 
+    public function uploadAttachment(Request $request, string $id)
+    {
+        $validated = $request->validate([
+            'type' => ['required', 'string', 'max:30', Rule::in(['ORDER_DOC', 'PAYMENT_PROOF', 'QUOTE_SCREENSHOT'])],
+            'file' => ['required', 'file', 'max:10240'],
+        ]);
+
+        $purchaseRequest = PurchaseRequest::query()->find((int) $id);
+        if (!$purchaseRequest) {
+            return response()->json(['error' => 'Solicitud no encontrada'], 404);
+        }
+
+        $stored = $this->service->storeUpload($request->file('file'));
+        $attachment = RequestAttachment::query()->create([
+            'request_id' => $purchaseRequest->id,
+            'type' => $validated['type'],
+            ...$stored,
+            'uploaded_at' => now(),
+        ]);
+
+        RequestLog::query()->create([
+            'request_id' => $purchaseRequest->id,
+            'action' => 'attachment_added',
+            'from_status' => $purchaseRequest->status,
+            'to_status' => $purchaseRequest->status,
+            'note' => 'Adjunto: ' . $validated['type'],
+            'created_at' => now(),
+        ]);
+
+        return response()->json([
+            'ok' => true,
+            'attachment_id' => $attachment->id,
+        ]);
+    }
+
     public function createFromInvoiceWebhook(Request $request)
     {
         $expectedToken = trim((string) env('FACTURADOR_WEBHOOK_TOKEN', ''));
         if ($expectedToken !== '') {
-            $got = (string) ($request->header('x-webhook-token') ?? '');
+            $got = (string) ($request->header('x-webhook-token') ? '');
             if ($got === '') {
-                $auth = (string) ($request->header('authorization') ?? '');
+                $auth = (string) ($request->header('authorization') ? '');
                 if (preg_match('/^Bearer\\s+(.+)$/i', $auth, $m)) {
-                    $got = (string) ($m[1] ?? '');
+                    $got = (string) ($m[1] ? '');
                 } else {
                     $got = $auth;
                 }
@@ -450,6 +508,7 @@ class PurchaseRequestsController extends Controller
         $proof = $request->file('paymentProof');
 
         $created = 0;
+        $proofAdded = false;
 
         if (is_array($screenshots)) {
             foreach ($screenshots as $file) {
@@ -473,6 +532,21 @@ class PurchaseRequestsController extends Controller
                 'uploaded_at' => now(),
             ]);
             $created++;
+            $proofAdded = true;
+        }
+
+        if ($proofAdded && $purchaseRequest->status === 'Pendiente comprobante') {
+            $purchaseRequest->status = 'Borrador';
+            $purchaseRequest->save();
+
+            RequestLog::query()->create([
+                'request_id' => $purchaseRequest->id,
+                'action' => 'payment_proof_attached',
+                'from_status' => 'Pendiente comprobante',
+                'to_status' => 'Borrador',
+                'note' => 'Comprobante adjunto desde recibo',
+                'created_at' => now(),
+            ]);
         }
 
         return response()->json([
@@ -482,3 +556,6 @@ class PurchaseRequestsController extends Controller
         ]);
     }
 }
+
+
+

@@ -4,7 +4,7 @@
   }
 
   function escapeHtml(s) {
-    return String(s ?? "")
+    return String(s ? "")
       .replaceAll("&", "&amp;")
       .replaceAll("<", "&lt;")
       .replaceAll(">", "&gt;")
@@ -20,7 +20,9 @@
           ? "pending"
           : status === "Compra realizada" || status === "Completada"
             ? "done"
-            : "draft";
+            : status === "Cancelada"
+              ? "cancelled"
+              : "draft";
     return `<span class="pill ${cls}">${escapeHtml(status)}</span>`;
   }
 
@@ -79,7 +81,7 @@
                     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
                       <a class="btn" href="../detalle-solicitud/detalle-solicitud.html?id=${encodeURIComponent(r.id)}">Ver</a>
                       <select class="statusSelect" data-id="${r.id}" style="padding:10px 10px;border-radius:999px;">
-                        ${["Borrador", "Pendiente comprobante", "Enviada al Supervisor", "Compra realizada", "Completada"]
+                        ${["Borrador", "Pendiente comprobante", "Enviada al Supervisor", "Compra realizada", "Completada", "Cancelada"]
                           .map(
                             (s) =>
                               `<option ${s === r.status ? "selected" : ""}>${escapeHtml(s)}</option>`,

@@ -251,6 +251,7 @@ a{ color: inherit; text-decoration: none; }
 .pill.pending{ border-color: rgba(245,158,11,.35); background: rgba(245,158,11,.10); }
 .pill.draft{ border-color: rgba(100,116,139,.25); background: rgba(100,116,139,.10); }
 .pill.done{ border-color: rgba(34,197,94,.35); background: rgba(34,197,94,.10); }
+.pill.cancelled{ border-color: rgba(239,68,68,.35); background: rgba(239,68,68,.10); }
 
 .filters{
   display: grid;

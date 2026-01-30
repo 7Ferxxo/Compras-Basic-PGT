@@ -18,10 +18,10 @@ class StoresController extends Controller
                 return [
                     'id' => $store->id,
                     'name' => $store->name,
-                    'requires_residential_address' => (bool) ($rules?->requires_residential_address ?? false),
-                    'residential_fee_per_item' => (float) ($rules?->residential_fee_per_item ?? 2.0),
-                    'requires_american_card' => (bool) ($rules?->requires_american_card ?? false),
-                    'american_card_surcharge_rate' => (float) ($rules?->american_card_surcharge_rate ?? 0.03),
+                    'requires_residential_address' => (bool) ($rules?->requires_residential_address ? false),
+                    'residential_fee_per_item' => (float) ($rules?->residential_fee_per_item ? 2.0),
+                    'requires_american_card' => (bool) ($rules?->requires_american_card ? false),
+                    'american_card_surcharge_rate' => (float) ($rules?->american_card_surcharge_rate ? 0.03),
                 ];
             })
             ->values();

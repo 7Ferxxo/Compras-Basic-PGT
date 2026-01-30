@@ -55,5 +55,10 @@
         method: "POST",
         body: payload || {},
       }),
+    uploadAttachment: (id, formData) =>
+      requestJson(`/api/purchase-requests/${encodeURIComponent(id)}/attachments`, {
+        method: "POST",
+        body: formData,
+      }),
   };
 })();

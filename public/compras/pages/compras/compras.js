@@ -6,7 +6,7 @@
   }
 
   function escapeHtml(s) {
-    return String(s ?? "")
+    return String(s ? "")
       .replaceAll("&", "&amp;")
       .replaceAll("<", "&lt;")
       .replaceAll(">", "&gt;")
@@ -36,7 +36,9 @@
           ? "pending"
           : status === "Compra realizada" || status === "Completada"
             ? "done"
-            : "draft";
+            : status === "Cancelada"
+              ? "cancelled"
+              : "draft";
     return `<span class="pill ${cls}">${escapeHtml(status)}</span>`;
   }
 
@@ -44,6 +46,7 @@
     if (status === "Enviada al Supervisor") return "sent";
     if (status === "Pendiente comprobante" || status === "Borrador") return "pending";
     if (status === "Compra realizada" || status === "Completada") return "done";
+    if (status === "Cancelada") return "cancelled";
     return "";
   }
 
@@ -118,7 +121,7 @@
 
   function setCount(id, n) {
     const el = $(id);
-    if (el) el.textContent = String(n ?? 0);
+    if (el) el.textContent = String(n ? 0);
   }
 
   async function loadList() {
@@ -192,7 +195,7 @@
 
     btn.addEventListener("click", () => {
       const current = getComprasToken();
-      const next = prompt("Token del depto de Compras (vacío para desactivar):", current) ?? current;
+      const next = prompt("Token del depto de Compras (vacío para desactivar):", current) ? current;
       setComprasToken(next);
       render();
     });

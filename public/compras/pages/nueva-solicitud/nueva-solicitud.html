@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="es">
   <head>
     <meta charset="utf-8" />
@@ -13,25 +13,31 @@
       </aside>
 
       <main class="main">
-        <div class="topbar">
-          <div class="title">
-            <div class="muted" style="font-weight: 900; letter-spacing: 0.6px;">CREAR</div>
+        <div class="topbar hero">
+          <div class="title hero-title">
+            <div class="muted hero-kicker">CREAR</div>
             <h1>Nueva solicitud</h1>
             <p>Genera el recibo y crea la solicitud (BASIC) en Compras.</p>
+            <div class="hero-steps">
+              <div class="step-chip active" data-step="1"><span>1</span> Cliente</div>
+              <div class="step-chip" data-step="2"><span>2</span> Pago</div>
+              <div class="step-chip" data-step="3"><span>3</span> Evidencias</div>
+              <div class="step-chip" data-step="4"><span>4</span> Confirmacion</div>
+            </div>
           </div>
-          <a class="btn" href="../solicitudes/solicitudes.html">Cancelar</a>
+          <a class="btn ghost" href="../solicitudes/solicitudes.html">Cancelar</a>
         </div>
 
         <section class="grid">
           <form id="receiptForm" class="card request-card receipt-card" style="grid-column: span 12;">
-            <div class="section" style="border-top:none;padding-top:0;margin-top:0;">
+            <div class="section section-hero" style="border-top:none;padding-top:0;margin-top:0;">
               <div class="section-title">Recibo</div>
               <div id="receiptError" class="hint" style="display:none;"></div>
             </div>
 
             <div class="form-grid receipt-grid">
               <div class="col">
-                <div class="section">
+                <div class="section wizard-section" data-step="1">
                   <div class="section-title">Datos del Cliente</div>
                   <div class="row-3">
                     <div class="field" style="margin-top:0;">
@@ -69,10 +75,11 @@
                   </div>
                 </div>
 
-                <div class="section">
+                <div class="section wizard-section" data-step="2">
                   <div class="section-title">Pago</div>
                   <div class="field" style="margin-top: 0;">
                     <input id="rMetodoPago" type="hidden" />
+                    <div class="muted helper-text">Selecciona el método de pago para calcular la comisión.</div>
                     <div class="pay-grid" id="rPayGrid">
                       <div class="pay-option" role="button" tabindex="0" data-method="Transferencia">
                         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -128,8 +135,9 @@
                   <input id="rTipoServicio" type="hidden" value="BASIC" />
                 </div>
 
-                <div class="section">
+                <div class="section wizard-section" data-step="3">
                   <div class="section-title">Evidencias</div>
+                  <div class="muted helper-text">Puedes pegar (Ctrl+V) o arrastrar archivos.</div>
                   <div class="dropzones">
                     <div class="dropzone" data-input="quoteScreenshots" role="button" tabindex="0">
                       <div class="dz-ico" aria-hidden="true">
@@ -172,7 +180,7 @@
               </div>
 
               <div class="col">
-                <div class="section">
+                <div class="section wizard-section" data-step="2">
                   <div class="section-title">Detalle</div>
                   <div class="field" style="margin-top:0;">
                     <div class="label">Descripción</div>
@@ -191,7 +199,7 @@
 
                   <div class="receipt-summary" style="margin-top: 12px;">
                     <div style="display:flex;justify-content:space-between;gap:12px;">
-                      <span>Comisión</span>
+                      <span>comisión</span>
                       <b id="rComision">B/. 0.00</b>
                     </div>
                     <div style="display:flex;justify-content:space-between;gap:12px;margin-top:6px;">
@@ -200,13 +208,34 @@
                     </div>
                   </div>
                 </div>
+                              </div>
+            </div>
+
+
+            <div class="section wizard-section" data-step="4">
+              <div class="section-title">Confirmacion</div>
+              <div class="confirm-card">
+                <div class="confirm-row"><span>Cliente</span><b id="sumCliente">-</b></div>
+                <div class="confirm-row"><span>Casillero</span><b id="sumCasillero">-</b></div>
+                <div class="confirm-row"><span>Email</span><b id="sumEmail">-</b></div>
+                <div class="confirm-row"><span>Sucursal</span><b id="sumSucursal">-</b></div>
+                <div class="confirm-row"><span>Fecha</span><b id="sumFecha">-</b></div>
+                <div class="confirm-row"><span>Metodo de pago</span><b id="sumMetodo">-</b></div>
+                <div class="confirm-row"><span>Precio</span><b id="sumPrecio">-</b></div>
+                <div class="confirm-row"><span>Comision</span><b id="sumComision">-</b></div>
+                <div class="confirm-row"><span>Total</span><b id="sumTotal">-</b></div>
+                <div class="confirm-row"><span>Link</span><b id="sumLink">-</b></div>
+                <div class="confirm-row"><span>Descripcion</span><b id="sumDesc">-</b></div>
+                <div class="confirm-row"><span>Evidencias</span><b id="sumEvidencias">-</b></div>
               </div>
             </div>
 
             <div class="actionbar">
               <a class="btn" href="/dashboard">Historial de recibos</a>
-              <div class="action-right">
-                <button class="btn danger" id="rSubmitBtn" type="submit">
+              <div class="action-right wizard-actions">
+                <button class="btn ghost" id="wizardBack" type="button">Atras</button>
+                <button class="btn" id="wizardNext" type="button">Siguiente</button>
+                <button class="btn cta" id="rSubmitBtn" type="submit">
                   <span class="btn-ico" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none">
                       <path
@@ -233,3 +262,6 @@
     <script src="nueva-solicitud.js"></script>
   </body>
 </html>
+
+
+

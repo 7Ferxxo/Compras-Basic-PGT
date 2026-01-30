@@ -8,6 +8,20 @@ use Illuminate\Support\Facades\DB;
 
 class StatsController extends Controller
 {
+    private function storeNameExpression(): string
+    {
+        $driver = DB::connection()->getDriverName();
+        $concat = $driver === 'sqlite'
+            ? "s.name || ' - ' || pr.store_custom_name"
+            : "CONCAT(s.name, ' - ', pr.store_custom_name)";
+
+        return "CASE
+                    WHEN pr.store_custom_name IS NOT NULL AND pr.store_custom_name <> ''
+                      THEN {$concat}
+                    ELSE s.name
+                END AS store_name";
+    }
+
     public function index()
     {
         $total = (int) PurchaseRequest::query()->count();
@@ -17,6 +31,7 @@ class StatsController extends Controller
         $sent = (int) PurchaseRequest::query()->where('status', 'Enviada al Supervisor')->count();
         $completed = (int) PurchaseRequest::query()->whereIn('status', ['Compra realizada', 'Completada'])->count();
 
+        $storeNameExpr = $this->storeNameExpression();
         $recent = DB::table('purchase_requests as pr')
             ->join('stores as s', 's.id', '=', 'pr.store_id')
             ->select([
@@ -26,13 +41,7 @@ class StatsController extends Controller
                 'pr.client_code',
                 'pr.status',
                 'pr.updated_at',
-                DB::raw(
-                    "CASE
-                        WHEN pr.store_custom_name IS NOT NULL AND pr.store_custom_name <> ''
-                          THEN s.name || ' - ' || pr.store_custom_name
-                        ELSE s.name
-                     END AS store_name",
-                ),
+                DB::raw($storeNameExpr),
             ])
             ->orderByDesc('pr.updated_at')
             ->limit(5)

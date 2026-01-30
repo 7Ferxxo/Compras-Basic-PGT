@@ -55,7 +55,7 @@ class PurchaseRequestService
             : 0.0;
 
         $americanCardCharge = $rules?->requires_american_card
-            ? $quotedTotal * (float) ($rules->american_card_surcharge_rate ?? 0.03)
+            ? $quotedTotal * (float) ($rules->american_card_surcharge_rate ? 0.03)
             : 0.0;
 
         return [
@@ -75,13 +75,13 @@ class PurchaseRequestService
        
     public function pickStoreFromItemLink(?string $itemLink): array
     {
-        $raw = trim((string) ($itemLink ?? ''));
+        $raw = trim((string) ($itemLink ? ''));
         if ($raw === '') return ['storeId' => 7, 'storeCustomName' => 'OTROS'];
 
         try {
             $u = parse_url($raw);
-            $host = strtolower((string) ($u['host'] ?? ''));
-            $host = preg_replace('/^www\./', '', $host) ?? $host;
+            $host = strtolower((string) ($u['host'] ? ''));
+            $host = preg_replace('/^www\./', '', $host) ? $host;
 
             if (str_contains($host, 'walmart')) return ['storeId' => 1, 'storeCustomName' => null];
             if (str_contains($host, 'amazon')) return ['storeId' => 2, 'storeCustomName' => null];
@@ -116,17 +116,17 @@ class PurchaseRequestService
         return [
             'stored_name' => $storedName,
             'original_name' => (string) $file->getClientOriginalName(),
-            'mime_type' => (string) ($file->getClientMimeType() ?? 'application/octet-stream'),
+            'mime_type' => (string) ($file->getClientMimeType() ? 'application/octet-stream'),
             'size_bytes' => (int) $file->getSize(),
         ];
     }
 
     public function createFromInvoiceWebhookPayload(array $payload): PurchaseRequest
     {
-        $receiptId = trim((string) ($payload['id_recibo'] ?? ''));
-        $clientCode = trim((string) ($payload['casillero'] ?? ''));
-        $clientName = trim((string) ($payload['cliente'] ?? ''));
-        $itemLink = trim((string) ($payload['link_producto'] ?? ''));
+        $receiptId = trim((string) ($payload['id_recibo'] ? ''));
+        $clientCode = trim((string) ($payload['casillero'] ? ''));
+        $clientName = trim((string) ($payload['cliente'] ? ''));
+        $itemLink = trim((string) ($payload['link_producto'] ? ''));
 
         if ($receiptId === '') {
             throw new \InvalidArgumentException('id_recibo es requerido');
@@ -135,12 +135,12 @@ class PurchaseRequestService
             throw new \InvalidArgumentException('casillero es requerido');
         }
 
-        $sourceSystem = trim((string) ($payload['origen'] ?? '')) ?: 'FACTURADOR_LARAVEL';
-        $descripcion = trim((string) ($payload['descripcion_compra'] ?? '')) ?: null;
-        $paymentMethod = trim((string) ($payload['metodo_pago'] ?? '')) ?: null;
-        $subtotal = is_numeric($payload['subtotal'] ?? null) ? (float) $payload['subtotal'] : null;
-        $montoPagado = is_numeric($payload['monto_pagado'] ?? null) ? (float) $payload['monto_pagado'] : null;
-        $evidenciaUrl = trim((string) ($payload['evidencia_pago_url'] ?? '')) ?: null;
+        $sourceSystem = trim((string) ($payload['origen'] ? '')) ?: 'FACTURADOR_LARAVEL';
+        $descripcion = trim((string) ($payload['descripcion_compra'] ? '')) ?: null;
+        $paymentMethod = trim((string) ($payload['metodo_pago'] ? '')) ?: null;
+        $subtotal = is_numeric($payload['subtotal'] ? null) ? (float) $payload['subtotal'] : null;
+        $montoPagado = is_numeric($payload['monto_pagado'] ? null) ? (float) $payload['monto_pagado'] : null;
+        $evidenciaUrl = trim((string) ($payload['evidencia_pago_url'] ? '')) ?: null;
 
         $clientName = $clientName !== '' ? $clientName : "Casillero {$clientCode}";
 
@@ -155,7 +155,7 @@ class PurchaseRequestService
             throw new \InvalidArgumentException('storeId derivado inválido');
         }
 
-        $quotedTotal = $subtotal ?? $montoPagado ?? 0.0;
+        $quotedTotal = $subtotal ? $montoPagado ? 0.0;
         $charges = $this->computeCharges($storeId, 1, $quotedTotal);
 
         $meta = array_values(array_filter([
@@ -171,7 +171,7 @@ class PurchaseRequestService
         ]))) ?: null;
 
         $code = $this->nextCode();
-        $status = 'Borrador';
+        $status = $evidenciaUrl ? 'Borrador' : 'Pendiente comprobante';
 
         $request = PurchaseRequest::query()->create([
             'code' => $code,

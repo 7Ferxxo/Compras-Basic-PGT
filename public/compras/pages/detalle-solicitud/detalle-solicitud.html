@@ -89,6 +89,16 @@
               </div>
             </div>
             <hr style="border: none; border-top: 1px solid rgba(15, 23, 42, 0.1); margin: 16px 0;" />
+            <div>
+              <label>
+                Orden de compra / comprobante final
+                <input id="orderDocFile" type="file" />
+              </label>
+              <div class="actions">
+                <button class="btn" id="orderDocBtn" type="button">Subir adjunto</button>
+              </div>
+            </div>
+            <hr style="border: none; border-top: 1px solid rgba(15, 23, 42, 0.1); margin: 16px 0;" />
             <form id="statusForm">
               <label>
                 Cambiar estado (manual)
@@ -98,6 +108,7 @@
                   <option>Enviada al Supervisor</option>
                   <option>Compra realizada</option>
                   <option>Completada</option>
+                  <option>Cancelada</option>
                 </select>
               </label>
               <label style="margin-top: 10px;">
@@ -116,8 +127,13 @@
           </div>
 
           <div class="card" style="grid-column: span 6;">
-            <h2>Adjuntos — Comprobante</h2>
-            <div id="attachmentsPayment" class="muted">—</div>
+            <h2>Adjuntos - Comprobante</h2>
+            <div id="attachmentsPayment" class="muted">-</div>
+          </div>
+
+          <div class="card" style="grid-column: span 6;">
+            <h2>Adjuntos - Orden/Final</h2>
+            <div id="attachmentsOrder" class="muted">-</div>
           </div>
 
           <div class="card" style="grid-column: span 12;">

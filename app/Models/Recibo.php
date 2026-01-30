@@ -13,6 +13,10 @@ class Recibo extends Model
 
     public $timestamps = false;
 
+    protected $hidden = [
+        'pdf_blob',
+    ];
+
     protected $fillable = [
         'cliente',
         'casillero',
@@ -22,6 +26,7 @@ class Recibo extends Model
         'metodo_pago',
         'fecha',
         'email_cliente',
-        'pdf_filename'
+        'pdf_filename',
+        'pdf_blob'
     ];
 }
