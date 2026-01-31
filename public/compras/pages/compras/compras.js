@@ -6,7 +6,7 @@
   }
 
   function escapeHtml(s) {
-    return String(s ? "")
+    return String(s ?? "")
       .replaceAll("&", "&amp;")
       .replaceAll("<", "&lt;")
       .replaceAll(">", "&gt;")
@@ -28,25 +28,39 @@
     return d.toLocaleString();
   }
 
-  function statusPill(status) {
+  function statusLabel(status) {
+    return (
+      {
+        pending: "Pendiente",
+        sent_to_supervisor: "Enviada al Supervisor",
+        completed: "Completada",
+        approved: "Aprobada",
+        rejected: "Rechazada",
+        cancelled: "Cancelada",
+      }[status] || status || "Pendiente"
+    );
+  }
+
+  function statusPill(status, label) {
     const cls =
-      status === "Enviada al Supervisor"
+      status === "sent_to_supervisor"
         ? "sent"
-        : status === "Pendiente comprobante" || status === "Borrador"
+        : status === "pending"
           ? "pending"
-          : status === "Compra realizada" || status === "Completada"
+          : status === "completed"
             ? "done"
-            : status === "Cancelada"
+            : status === "cancelled" || status === "rejected"
               ? "cancelled"
               : "draft";
-    return `<span class="pill ${cls}">${escapeHtml(status)}</span>`;
+    const text = label || statusLabel(status);
+    return `<span class="pill ${cls}">${escapeHtml(text)}</span>`;
   }
 
   function statusClass(status) {
-    if (status === "Enviada al Supervisor") return "sent";
-    if (status === "Pendiente comprobante" || status === "Borrador") return "pending";
-    if (status === "Compra realizada" || status === "Completada") return "done";
-    if (status === "Cancelada") return "cancelled";
+    if (status === "sent_to_supervisor") return "sent";
+    if (status === "pending") return "pending";
+    if (status === "completed") return "done";
+    if (status === "cancelled" || status === "rejected") return "cancelled";
     return "";
   }
 
@@ -79,11 +93,22 @@
 
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      const msg = data?.error || `HTTP ${res.status}`;
+      const msg = data?.errors?.message?.[0] || data?.message || data?.error || `HTTP ${res.status}`;
       const err = new Error(msg);
       err.status = res.status;
       throw err;
     }
+
+    if (data && typeof data === "object" && "success" in data) {
+      if (!data.success) {
+        const msg = data?.errors?.message?.[0] || data?.message || "Error";
+        const err = new Error(msg);
+        err.status = res.status;
+        throw err;
+      }
+      return data.data ?? {};
+    }
+
     return data;
   }
 
@@ -91,26 +116,26 @@
     const total =
       Number(r.quoted_total || 0) + Number(r.residential_charge || 0) + Number(r.american_card_charge || 0);
 
-    const store = r.store_name ? ` · ${escapeHtml(r.store_name)}` : "";
+    const store = r.store_name ? ` - ${escapeHtml(r.store_name)}` : "";
     const cls = statusClass(r.status);
     return `
       <div class="req-row" data-id="${r.id}">
         <div class="req-main">
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
             <div class="req-code">${escapeHtml(r.code)}</div>
-            <div>${statusPill(r.status)}</div>
+            <div>${statusPill(r.status, r.status_label)}</div>
           </div>
           <div class="req-meta">
             ${escapeHtml(r.client_name)} <span class="muted">(${escapeHtml(r.client_code)})</span>${store}
-            · <b>Total:</b> ${money(total)}
-            · <span class="muted">${escapeHtml(formatDate(r.updated_at))}</span>
+            - <b>Total:</b> ${money(total)}
+            - <span class="muted">${escapeHtml(formatDate(r.updated_at))}</span>
           </div>
         </div>
         <div class="req-actions">
           <a class="btn small" href="../detalle-solicitud/detalle-solicitud.html?id=${encodeURIComponent(r.id)}">Ver</a>
           ${
             canComplete
-              ? `<button class="btn small primary markDoneBtn" type="button" data-id="${r.id}">Compra realizada</button>`
+              ? `<button class="btn small primary markDoneBtn" type="button" data-id="${r.id}">Completar</button>`
               : ""
           }
         </div>
@@ -121,16 +146,16 @@
 
   function setCount(id, n) {
     const el = $(id);
-    if (el) el.textContent = String(n ? 0);
+    if (el) el.textContent = String(n ?? 0);
   }
 
   async function loadList() {
     const all = await window.PGT.api.listRequests({ page: 1, pageSize: 100 });
     const items = all.items || [];
 
-    const countPending = items.filter((r) => r.status === "Borrador" || r.status === "Pendiente comprobante").length;
-    const countSent = items.filter((r) => r.status === "Enviada al Supervisor").length;
-    const countDone = items.filter((r) => r.status === "Compra realizada" || r.status === "Completada").length;
+    const countPending = items.filter((r) => r.status === "pending").length;
+    const countSent = items.filter((r) => r.status === "sent_to_supervisor").length;
+    const countDone = items.filter((r) => r.status === "completed").length;
 
     setCount("#countPending", countPending);
     setCount("#countSent", countSent);
@@ -142,7 +167,7 @@
         ? items
             .map((r) =>
               renderRow(r, {
-                canComplete: r.status === "Enviada al Supervisor",
+                canComplete: r.status === "sent_to_supervisor",
               }),
             )
             .join("")
@@ -160,7 +185,7 @@
 
         const token = getComprasToken();
         if (!token) {
-          alert("Activa Modo compras (token) para marcar como Compra realizada.");
+          alert("Activa Modo compras (token) para marcar como Completar.");
           return;
         }
 
@@ -168,10 +193,10 @@
           btn.disabled = true;
           await requestJson(`/api/purchase-requests/${encodeURIComponent(id)}/status`, {
             method: "PATCH",
-            body: { status: "Compra realizada", note },
+            body: { status: "completed", note },
             headers: { "X-Compras-Token": token },
           });
-          await loadColumns();
+          await loadList();
         } catch (e) {
           alert(e.message);
         } finally {
@@ -195,7 +220,7 @@
 
     btn.addEventListener("click", () => {
       const current = getComprasToken();
-      const next = prompt("Token del depto de Compras (vacío para desactivar):", current) ? current;
+      const next = prompt("Token del depto de Compras (vacio para desactivar):", current) || "";
       setComprasToken(next);
       render();
     });

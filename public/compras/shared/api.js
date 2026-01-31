@@ -18,11 +18,26 @@
 
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      const msg = data?.error || `HTTP ${res.status}`;
+      const msg =
+        data?.errors?.message?.[0] ||
+        data?.message ||
+        data?.error ||
+        `HTTP ${res.status}`;
       const err = new Error(msg);
       err.status = res.status;
       throw err;
     }
+
+    if (data && typeof data === "object" && "success" in data) {
+      if (!data.success) {
+        const msg = data?.errors?.message?.[0] || data?.message || "Error";
+        const err = new Error(msg);
+        err.status = res.status;
+        throw err;
+      }
+      return data.data ?? {};
+    }
+
     return data;
   }
 

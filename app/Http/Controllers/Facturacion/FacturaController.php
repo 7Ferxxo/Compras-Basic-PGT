@@ -13,8 +13,17 @@ use Illuminate\Support\Facades\Mail;
 
 class FacturaController extends Controller
 {
+    private function configurePdfRuntime(): void
+    {
+        @ini_set('memory_limit', '512M');
+        @ini_set('max_execution_time', '0');
+        @ini_set('max_input_time', '0');
+        @set_time_limit(0);
+    }
+
     public function verPdf(int $id)
     {
+        $this->configurePdfRuntime();
         $recibo = Recibo::query()->findOrFail($id);
 
         $rutaCarpeta = public_path('facturas_pdf');
@@ -74,6 +83,7 @@ class FacturaController extends Controller
 
     public function guardar(StoreReciboRequest $request)
     {
+        $this->configurePdfRuntime();
         try {
             $subtotal = 0;
             $concepto = "";

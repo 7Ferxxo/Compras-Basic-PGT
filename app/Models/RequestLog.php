@@ -13,6 +13,7 @@ class RequestLog extends Model
 
     protected $fillable = [
         'request_id',
+        'actor_name',
         'action',
         'from_status',
         'to_status',
@@ -29,4 +30,3 @@ class RequestLog extends Model
         return $this->belongsTo(PurchaseRequest::class, 'request_id');
     }
 }
-

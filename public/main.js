@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const isBasic = (tipoServicioInput?.value || '').toUpperCase() === 'BASIC';
         if (linkProductoGroup) linkProductoGroup.style.display = isBasic ? '' : 'none';
         if (linkProductoInput) {
-            linkProductoInput.required = isBasic;
+            linkProductoInput.required = false;
             if (!isBasic) linkProductoInput.value = '';
         }
     };

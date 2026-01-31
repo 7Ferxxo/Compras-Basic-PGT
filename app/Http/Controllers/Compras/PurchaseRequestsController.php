@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 namespace App\Http\Controllers\Compras;
 
@@ -12,6 +12,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
 class PurchaseRequestsController extends Controller
@@ -23,6 +25,12 @@ class PurchaseRequestsController extends Controller
     private function allowedStatuses(): array
     {
         return [
+            'pending',
+            'sent_to_supervisor',
+            'completed',
+            'approved',
+            'rejected',
+            'cancelled',
             'Borrador',
             'Pendiente comprobante',
             'Enviada al Supervisor',
@@ -30,6 +38,48 @@ class PurchaseRequestsController extends Controller
             'Completada',
             'Cancelada',
         ];
+    }
+
+    private function normalizeStatus(?string $status): string
+    {
+        return match ($status) {
+            'Borrador', 'Pendiente comprobante', 'Pendiente' => 'pending',
+            'Enviada al Supervisor' => 'sent_to_supervisor',
+            'Compra realizada', 'Completada' => 'completed',
+            'Cancelada' => 'cancelled',
+            default => $status ?: 'pending',
+        };
+    }
+
+    private function statusLabel(?string $status): string
+    {
+        return match ($status) {
+            'pending' => 'Pendiente',
+            'sent_to_supervisor' => 'Enviada al Supervisor',
+            'completed' => 'Completada',
+            'approved' => 'Aprobada',
+            'rejected' => 'Rechazada',
+            'cancelled' => 'Cancelada',
+            default => $status ?: 'Pendiente',
+        };
+    }
+
+    private function errorResponse(string $message, int $status = 400, mixed $errors = null)
+    {
+        return response()->json([
+            'success' => false,
+            'data' => null,
+            'errors' => $errors ?: ['message' => [$message]],
+        ], $status);
+    }
+
+    private function okResponse(mixed $data, int $status = 200)
+    {
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+            'errors' => null,
+        ], $status);
     }
 
     private function storeNameExpression(string $storeAlias, string $customAlias): string
@@ -78,6 +128,7 @@ class PurchaseRequestsController extends Controller
             $statuses = collect(explode(',', (string) $status))
                 ->map(fn ($s) => trim($s))
                 ->filter(fn ($s) => $s !== '')
+                ->map(fn ($s) => $this->normalizeStatus($s))
                 ->unique()
                 ->values();
 
@@ -134,7 +185,16 @@ class PurchaseRequestsController extends Controller
             ->offset($offset)
             ->get();
 
-        return response()->json([
+        $rows = $rows->map(function ($row) {
+            $row->status = $this->normalizeStatus($row->status ?? null);
+            $row->status_label = $this->statusLabel($row->status);
+            $row->payment_proof_url = $row->payment_proof_file
+                ? Storage::disk('public')->url($row->payment_proof_file)
+                : null;
+            return $row;
+        });
+
+        return $this->okResponse([
             'items' => $rows,
             'pagination' => [
                 'page' => $page,
@@ -163,7 +223,7 @@ class PurchaseRequestsController extends Controller
             ->first();
 
         if (!$row) {
-            return response()->json(['error' => 'Solicitud no encontrada'], 404);
+            return $this->errorResponse('Solicitud no encontrada', 404);
         }
 
         $attachments = RequestAttachment::query()
@@ -180,7 +240,7 @@ class PurchaseRequestsController extends Controller
                     'mime_type' => $a->mime_type,
                     'size_bytes' => $a->size_bytes,
                     'uploaded_at' => $a->uploaded_at,
-                    'url' => '/uploads/' . rawurlencode($a->stored_name),
+                    'url' => Storage::disk('public')->url($a->stored_name),
                 ];
             })
             ->values();
@@ -190,10 +250,12 @@ class PurchaseRequestsController extends Controller
             ->orderBy('created_at')
             ->get();
 
-        $hasAccountPassword = (bool) ($row->account_password_enc ? null);
+        $row->status = $this->normalizeStatus($row->status ?? null);
+        $row->status_label = $this->statusLabel($row->status);
+        $hasAccountPassword = !empty($row->account_password_enc);
         unset($row->account_password_enc);
 
-        return response()->json([
+        return $this->okResponse([
             ...((array) $row),
             'hasAccountPassword' => $hasAccountPassword,
             'attachments' => $attachments,
@@ -203,71 +265,95 @@ class PurchaseRequestsController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $validator = Validator::make($request->all(), [
             'clientName' => ['required', 'string', 'max:120'],
             'clientCode' => ['required', 'string', 'max:50'],
             'contactChannel' => ['nullable', 'string', 'max:80'],
             'paymentMethod' => ['nullable', 'string', 'max:20', Rule::in(['Transferencia', 'Yappy', 'Efectivo', 'Tarjeta'])],
             'accountEmail' => ['nullable', 'string', 'max:255'],
             'accountPassword' => ['nullable', 'string', 'max:500'],
-            'storeId' => ['required', 'integer', 'min:1'],
+            'storeId' => ['nullable', 'integer', 'min:1'],
             'storeCustomName' => ['nullable', 'string', 'max:255'],
-            'itemLink' => ['required', 'string', 'max:2000'],
+            'itemLink' => ['nullable', 'string', 'max:2000'],
             'itemOptions' => ['nullable', 'string', 'max:2000'],
             'itemQuantity' => ['nullable', 'integer', 'min:1', 'max:1000'],
             'quotedTotal' => ['required', 'numeric', 'min:0', 'max:1000000'],
             'notes' => ['nullable', 'string', 'max:3000'],
             'quoteScreenshots' => ['required'],
-            'quoteScreenshots.*' => ['file', 'max:10240'],
-            'paymentProof' => ['nullable', 'file', 'max:10240'],
+            'quoteScreenshots.*' => ['file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
+            'paymentProof' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
         ]);
 
-        $storeId = (int) $validated['storeId'];
-        if ($storeId === 7 && trim((string) ($validated['storeCustomName'] ? '')) === '') {
-            return response()->json(['error' => 'storeCustomName es requerido cuando la tienda es OTROS'], 400);
+        if ($validator->fails()) {
+            return $this->errorResponse('Datos invalidos', 422, $validator->errors());
         }
 
+        $validated = $validator->validated();
+
+        $storeId = (int) ($validated['storeId'] ?? 0);
+        $storeCustomName = $validated['storeCustomName'] ?? null;
+        if (!$storeId) {
+            $picked = $this->service->pickStoreFromItemLink($validated['itemLink'] ?? '');
+            $storeId = (int) $picked['storeId'];
+            $storeCustomName = $picked['storeCustomName'] ?? $storeCustomName;
+        }
+
+        $this->service->ensureDefaultStoresExist();
+
         if (!Store::query()->whereKey($storeId)->exists()) {
-            return response()->json(['error' => 'storeId inválido'], 400);
+            return $this->errorResponse('storeId invalido', 422, ['storeId' => ['storeId invalido']]);
+        }
+
+        if ($storeId === 7 && trim((string) $storeCustomName) === '') {
+            return $this->errorResponse('storeCustomName es requerido cuando la tienda es OTROS', 422, [
+                'storeCustomName' => ['storeCustomName es requerido cuando la tienda es OTROS'],
+            ]);
         }
 
         $screenshots = $request->file('quoteScreenshots', []);
+        if ($screenshots && !is_array($screenshots)) {
+            $screenshots = [$screenshots];
+        }
         if (!is_array($screenshots) || count($screenshots) < 1) {
-            return response()->json(['error' => 'quoteScreenshots es requerido (mínimo 1)'], 400);
+            return $this->errorResponse('quoteScreenshots es requerido (minimo 1)', 422, [
+                'quoteScreenshots' => ['quoteScreenshots es requerido (minimo 1)'],
+            ]);
         }
 
         $quotedTotal = (float) $validated['quotedTotal'];
-        $itemQuantity = (int) ($validated['itemQuantity'] ? 1);
+        $itemQuantity = max(1, (int) ($validated['itemQuantity'] ?? 1));
         $charges = $this->service->computeCharges($storeId, $itemQuantity, $quotedTotal);
 
         $paymentProof = $request->file('paymentProof');
-        $status = $paymentProof ? 'Borrador' : 'Pendiente comprobante';
+        $status = 'pending';
         $code = $this->service->nextCode();
 
         $passwordEnc = null;
-        $accountPassword = trim((string) ($validated['accountPassword'] ? ''));
+        $accountPassword = trim((string) ($validated['accountPassword'] ?? ''));
         if ($accountPassword !== '') {
             $passwordEnc = Crypt::encryptString($accountPassword);
         }
 
+        $itemLink = trim((string) ($validated['itemLink'] ?? ''));
         $purchaseRequest = PurchaseRequest::query()->create([
             'code' => $code,
             'client_name' => $validated['clientName'],
             'client_code' => $validated['clientCode'],
-            'contact_channel' => $validated['contactChannel'] ? null,
-            'payment_method' => $validated['paymentMethod'] ? null,
-            'account_email' => $validated['accountEmail'] ? null,
+            'contact_channel' => trim((string) ($validated['contactChannel'] ?? '')) ?: 'WEB',
+            'payment_method' => trim((string) ($validated['paymentMethod'] ?? '')) ?: null,
+            'account_email' => trim((string) ($validated['accountEmail'] ?? '')) ?: null,
             'account_password_enc' => $passwordEnc,
             'store_id' => $storeId,
-            'store_custom_name' => $storeId === 7 ? ($validated['storeCustomName'] ? null) : null,
-            'item_link' => $validated['itemLink'],
-            'item_options' => $validated['itemOptions'] ? null,
+            'store_custom_name' => $storeId === 7 ? ($storeCustomName ?: 'OTROS') : null,
+            'item_link' => $itemLink,
+            'item_options' => $validated['itemOptions'] ?? null,
             'item_quantity' => $itemQuantity,
             'quoted_total' => $quotedTotal,
             'residential_charge' => $charges['residentialCharge'],
             'american_card_charge' => $charges['americanCardCharge'],
-            'notes' => $validated['notes'] ? null,
+            'notes' => $validated['notes'] ?? null,
             'status' => $status,
+            'source_system' => 'WEB',
         ]);
 
         RequestLog::query()->create([
@@ -275,7 +361,8 @@ class PurchaseRequestsController extends Controller
             'action' => 'created',
             'from_status' => null,
             'to_status' => $status,
-            'note' => 'Creación',
+            'note' => 'Creacion',
+            'actor_name' => auth()->user()?->name ?? $validated['clientName'] ?? 'system',
         ]);
 
         foreach ($screenshots as $file) {
@@ -298,48 +385,53 @@ class PurchaseRequestsController extends Controller
             ]);
         }
 
-        return response()->json([
+        return $this->okResponse([
             'id' => $purchaseRequest->id,
             'code' => $code,
             'status' => $status,
+            'status_label' => $this->statusLabel($status),
         ], 201);
     }
 
     public function patchStatus(Request $request, string $id)
     {
         $allowed = $this->allowedStatuses();
-        $validated = $request->validate([
+        $validator = Validator::make($request->all(), [
             'status' => ['required', 'string', 'max:50', Rule::in($allowed)],
             'note' => ['nullable', 'string', 'max:1000'],
         ]);
+        if ($validator->fails()) {
+            return $this->errorResponse('Datos invalidos', 422, $validator->errors());
+        }
+        $validated = $validator->validated();
 
         $purchaseRequest = PurchaseRequest::query()->find((int) $id);
         if (!$purchaseRequest) {
-            return response()->json(['error' => 'Solicitud no encontrada'], 404);
+            return $this->errorResponse('Solicitud no encontrada', 404);
         }
 
-        $nextStatus = $validated['status'];
+        $nextStatus = $this->normalizeStatus($validated['status']);
 
-        if (in_array($nextStatus, ['Compra realizada', 'Completada'], true) && !$this->isComprasAuthorized($request)) {
-            return response()->json(['error' => 'No autorizado para cambiar a estado de compras'], 403);
+        if (in_array($nextStatus, ['completed'], true) && !$this->isComprasAuthorized($request)) {
+            return $this->errorResponse('No autorizado para cambiar a estado de compras', 403);
         }
 
-        if ($nextStatus === 'Enviada al Supervisor') {
+        if ($nextStatus === 'sent_to_supervisor') {
             $hasProof = RequestAttachment::query()
                 ->where('request_id', $purchaseRequest->id)
                 ->where('type', 'PAYMENT_PROOF')
                 ->exists();
             if (!$hasProof) {
-                return response()->json(['error' => 'No se puede enviar sin comprobante de pago'], 400);
+                return $this->errorResponse('No se puede enviar sin comprobante de pago', 400);
             }
         }
 
-        $fromStatus = $purchaseRequest->status;
-        if ($fromStatus !== $nextStatus && $nextStatus === 'Compra realizada' && $fromStatus !== 'Enviada al Supervisor') {
-            return response()->json(['error' => 'Solo se puede marcar Compra realizada después de Enviada al Supervisor'], 400);
+        $fromStatus = $this->normalizeStatus($purchaseRequest->status);
+        if ($fromStatus !== $nextStatus && $nextStatus === 'sent_to_supervisor' && $fromStatus !== 'pending') {
+            return $this->errorResponse('Solo se puede enviar al supervisor desde pendiente', 400);
         }
-        if ($fromStatus !== $nextStatus && $nextStatus === 'Completada' && $fromStatus !== 'Compra realizada') {
-            return response()->json(['error' => 'Solo se puede completar después de Compra realizada'], 400);
+        if ($fromStatus !== $nextStatus && $nextStatus === 'completed' && $fromStatus !== 'sent_to_supervisor') {
+            return $this->errorResponse('Solo se puede completar despues de Enviada al Supervisor', 400);
         }
         $purchaseRequest->status = $nextStatus;
         $purchaseRequest->save();
@@ -349,21 +441,26 @@ class PurchaseRequestsController extends Controller
             'action' => 'status_change',
             'from_status' => $fromStatus,
             'to_status' => $nextStatus,
-            'note' => trim((string) ($validated['note'] ? '')) ?: null,
+            'note' => trim((string) ($validated['note'] ?? '')) ?: null,
             'created_at' => now(),
+            'actor_name' => auth()->user()?->name ?? 'system',
         ]);
 
-        return response()->json(['ok' => true, 'status' => $nextStatus]);
+        return $this->okResponse([
+            'ok' => true,
+            'status' => $nextStatus,
+            'status_label' => $this->statusLabel($nextStatus),
+        ]);
     }
 
     public function sendToSupervisor(Request $request, string $id)
     {
         $purchaseRequest = PurchaseRequest::query()->find((int) $id);
         if (!$purchaseRequest) {
-            return response()->json(['error' => 'Solicitud no encontrada'], 404);
+            return $this->errorResponse('Solicitud no encontrada', 404);
         }
 
-        $note = trim((string) ($request->input('note') ? '')) ?: null;
+        $note = trim((string) ($request->input('note') ?? '')) ?: null;
 
         $file = $request->file('paymentProof');
         if ($file) {
@@ -381,11 +478,15 @@ class PurchaseRequestsController extends Controller
             ->where('type', 'PAYMENT_PROOF')
             ->exists();
         if (!$hasProof) {
-            return response()->json(['error' => 'No se puede enviar sin comprobante de pago'], 400);
+            return $this->errorResponse('No se puede enviar sin comprobante de pago', 400);
         }
 
-        $fromStatus = $purchaseRequest->status;
-        $purchaseRequest->status = 'Enviada al Supervisor';
+        $fromStatus = $this->normalizeStatus($purchaseRequest->status);
+        if ($fromStatus !== 'pending') {
+            return $this->errorResponse('Solo se puede enviar al supervisor desde pendiente', 400);
+        }
+
+        $purchaseRequest->status = 'sent_to_supervisor';
         $purchaseRequest->sent_note = $note;
         $purchaseRequest->sent_at = now();
         $purchaseRequest->save();
@@ -394,24 +495,33 @@ class PurchaseRequestsController extends Controller
             'request_id' => $purchaseRequest->id,
             'action' => 'send_to_supervisor',
             'from_status' => $fromStatus,
-            'to_status' => 'Enviada al Supervisor',
+            'to_status' => 'sent_to_supervisor',
             'note' => $note,
             'created_at' => now(),
+            'actor_name' => auth()->user()?->name ?? 'system',
         ]);
 
-        return response()->json(['ok' => true, 'status' => 'Enviada al Supervisor']);
+        return $this->okResponse([
+            'ok' => true,
+            'status' => 'sent_to_supervisor',
+            'status_label' => $this->statusLabel('sent_to_supervisor'),
+        ]);
     }
 
     public function uploadAttachment(Request $request, string $id)
     {
-        $validated = $request->validate([
+        $validator = Validator::make($request->all(), [
             'type' => ['required', 'string', 'max:30', Rule::in(['ORDER_DOC', 'PAYMENT_PROOF', 'QUOTE_SCREENSHOT'])],
-            'file' => ['required', 'file', 'max:10240'],
+            'file' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
         ]);
+        if ($validator->fails()) {
+            return $this->errorResponse('Datos invalidos', 422, $validator->errors());
+        }
+        $validated = $validator->validated();
 
         $purchaseRequest = PurchaseRequest::query()->find((int) $id);
         if (!$purchaseRequest) {
-            return response()->json(['error' => 'Solicitud no encontrada'], 404);
+            return $this->errorResponse('Solicitud no encontrada', 404);
         }
 
         $stored = $this->service->storeUpload($request->file('file'));
@@ -425,13 +535,14 @@ class PurchaseRequestsController extends Controller
         RequestLog::query()->create([
             'request_id' => $purchaseRequest->id,
             'action' => 'attachment_added',
-            'from_status' => $purchaseRequest->status,
-            'to_status' => $purchaseRequest->status,
+            'from_status' => $this->normalizeStatus($purchaseRequest->status),
+            'to_status' => $this->normalizeStatus($purchaseRequest->status),
             'note' => 'Adjunto: ' . $validated['type'],
             'created_at' => now(),
+            'actor_name' => auth()->user()?->name ?? 'system',
         ]);
 
-        return response()->json([
+        return $this->okResponse([
             'ok' => true,
             'attachment_id' => $attachment->id,
         ]);
@@ -441,37 +552,43 @@ class PurchaseRequestsController extends Controller
     {
         $expectedToken = trim((string) env('FACTURADOR_WEBHOOK_TOKEN', ''));
         if ($expectedToken !== '') {
-            $got = (string) ($request->header('x-webhook-token') ? '');
+            $got = (string) ($request->header('x-webhook-token') ?? '');
             if ($got === '') {
-                $auth = (string) ($request->header('authorization') ? '');
+                $auth = (string) ($request->header('authorization') ?? '');
                 if (preg_match('/^Bearer\\s+(.+)$/i', $auth, $m)) {
-                    $got = (string) ($m[1] ? '');
+                    $got = (string) ($m[1] ?? '');
                 } else {
                     $got = $auth;
                 }
             }
             if ($got === '' || $got !== $expectedToken) {
-                return response()->json(['error' => 'Token de webhook inválido'], 401);
+                return $this->errorResponse('Token de webhook invalido', 401);
             }
         }
 
         try {
             $created = $this->service->createFromInvoiceWebhookPayload($request->all());
-            return response()->json(['ok' => true, 'id' => $created->id, 'code' => $created->code, 'status' => $created->status], 201);
+            return $this->okResponse([
+                'ok' => true,
+                'id' => $created->id,
+                'code' => $created->code,
+                'status' => $this->normalizeStatus($created->status),
+                'status_label' => $this->statusLabel($this->normalizeStatus($created->status)),
+            ], 201);
         } catch (\InvalidArgumentException $e) {
-            return response()->json(['error' => $e->getMessage()], 400);
+            return $this->errorResponse($e->getMessage(), 400);
         } catch (\Throwable $e) {
             Log::error('Error creando solicitud desde webhook de recibo', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'Error inesperado'], 500);
+            return $this->errorResponse('Error inesperado', 500);
         }
     }
 
     public function attachFromReceipt(Request $request, string $reciboId)
     {
-        $request->validate([
+        $validator = Validator::make($request->all(), [
             'quoteScreenshots' => ['nullable'],
-            'quoteScreenshots.*' => ['file', 'max:10240'],
-            'paymentProof' => ['nullable', 'file', 'max:10240'],
+            'quoteScreenshots.*' => ['file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
+            'paymentProof' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
             'cliente' => ['nullable', 'string', 'max:120'],
             'casillero' => ['nullable', 'string', 'max:50'],
             'metodo_pago' => ['nullable', 'string', 'max:20'],
@@ -479,6 +596,9 @@ class PurchaseRequestsController extends Controller
             'monto_pagado' => ['nullable', 'numeric', 'min:0', 'max:1000000'],
             'link_producto' => ['nullable', 'string', 'max:2000'],
         ]);
+        if ($validator->fails()) {
+            return $this->errorResponse('Datos invalidos', 422, $validator->errors());
+        }
 
         $receiptId = trim((string) $reciboId);
 
@@ -497,7 +617,7 @@ class PurchaseRequestsController extends Controller
                 ];
                 $purchaseRequest = $this->service->createFromInvoiceWebhookPayload($payload);
             } catch (\Throwable $e) {
-                return response()->json(['error' => 'No se pudo ubicar/crear la solicitud para adjuntar evidencias'], 400);
+                return $this->errorResponse('No se pudo ubicar/crear la solicitud para adjuntar evidencias', 400);
             }
         }
 
@@ -535,21 +655,22 @@ class PurchaseRequestsController extends Controller
             $proofAdded = true;
         }
 
-        if ($proofAdded && $purchaseRequest->status === 'Pendiente comprobante') {
-            $purchaseRequest->status = 'Borrador';
+        if ($proofAdded && $this->normalizeStatus($purchaseRequest->status) === 'pending') {
+            $purchaseRequest->status = 'pending';
             $purchaseRequest->save();
 
             RequestLog::query()->create([
                 'request_id' => $purchaseRequest->id,
                 'action' => 'payment_proof_attached',
-                'from_status' => 'Pendiente comprobante',
-                'to_status' => 'Borrador',
+                'from_status' => 'pending',
+                'to_status' => 'pending',
                 'note' => 'Comprobante adjunto desde recibo',
                 'created_at' => now(),
+                'actor_name' => auth()->user()?->name ?? 'system',
             ]);
         }
 
-        return response()->json([
+        return $this->okResponse([
             'ok' => true,
             'request_id' => $purchaseRequest->id,
             'added' => $created,

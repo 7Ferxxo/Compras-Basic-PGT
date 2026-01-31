@@ -13,18 +13,18 @@
     if (!el) return;
     if (!items?.length) {
       el.innerHTML =
-        '<div class="hint">Aún no hay solicitudes recientes. Comienza creando una nueva.</div>';
+        '<div class="hint">Aun no hay solicitudes recientes. Comienza creando una nueva.</div>';
       return;
     }
     el.innerHTML = `
       <table class="table">
         <thead>
           <tr>
-            <th>Código</th>
-            <th>Cliente</th>
+            <th>Folio</th>
+            <th>Usuario</th>
             <th>Tienda</th>
             <th>Estado</th>
-            <th>Actualizado</th>
+            <th>Fecha</th>
           </tr>
         </thead>
         <tbody>
@@ -33,12 +33,10 @@
               (r) => `
                 <tr>
                   <td><a href="../detalle-solicitud/detalle-solicitud.html?id=${encodeURIComponent(r.id)}">${r.code}</a></td>
-                  <td>${escapeHtml(r.client_name)}<div class="muted">${escapeHtml(
-                r.client_code,
-              )}</div></td>
+                  <td>${escapeHtml(r.actor_name || r.client_name || "system")}</td>
                   <td>${escapeHtml(r.store_name)}</td>
-                  <td>${statusPill(r.status)}</td>
-                  <td class="muted">${formatDate(r.updated_at)}</td>
+                  <td>${statusPill(r.status, r.status_label)}</td>
+                  <td class="muted">${formatDate(r.created_at)}</td>
                 </tr>
               `,
             )
@@ -66,22 +64,27 @@
     return d.toLocaleString();
   }
 
-  function statusPill(status) {
+  function statusPill(status, label) {
     const cls =
-      status === "Enviada al Supervisor"
+      status === "sent_to_supervisor"
         ? "sent"
-        : status === "Pendiente comprobante"
+        : status === "pending"
           ? "pending"
-          : status === "Compra realizada" || status === "Completada"
+          : status === "completed"
             ? "done"
-            : status === "Cancelada"
+            : status === "cancelled" || status === "rejected"
               ? "cancelled"
               : "draft";
-    return `<span class="pill ${cls}">${escapeHtml(status)}</span>`;
+    return `<span class="pill ${cls}">${escapeHtml(label || status)}</span>`;
   }
 
   async function init() {
     try {
+      if (!window.PGT?.api?.getStats) {
+        $("#recentActivity").innerHTML =
+          '<div class="hint">No se cargo el modulo API. Refresca la pagina.</div>';
+        return;
+      }
       const data = await window.PGT.api.getStats();
       setText("#kpiTotal", data.kpis.total);
       setText("#kpiPending", data.kpis.pending);

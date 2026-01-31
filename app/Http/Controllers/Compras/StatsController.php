@@ -8,6 +8,19 @@ use Illuminate\Support\Facades\DB;
 
 class StatsController extends Controller
 {
+    private function statusLabel(?string $status): string
+    {
+        return match ($status) {
+            'pending' => 'Pendiente',
+            'sent_to_supervisor' => 'Enviada al Supervisor',
+            'completed' => 'Completada',
+            'approved' => 'Aprobada',
+            'rejected' => 'Rechazada',
+            'cancelled' => 'Cancelada',
+            default => $status ?: 'Pendiente',
+        };
+    }
+
     private function storeNameExpression(): string
     {
         $driver = DB::connection()->getDriverName();
@@ -26,13 +39,14 @@ class StatsController extends Controller
     {
         $total = (int) PurchaseRequest::query()->count();
         $pending = (int) PurchaseRequest::query()
-            ->whereIn('status', ['Borrador', 'Pendiente comprobante'])
+            ->where('status', 'pending')
             ->count();
-        $sent = (int) PurchaseRequest::query()->where('status', 'Enviada al Supervisor')->count();
-        $completed = (int) PurchaseRequest::query()->whereIn('status', ['Compra realizada', 'Completada'])->count();
+        $sent = (int) PurchaseRequest::query()->where('status', 'sent_to_supervisor')->count();
+        $completed = (int) PurchaseRequest::query()->where('status', 'completed')->count();
 
         $storeNameExpr = $this->storeNameExpression();
-        $recent = DB::table('purchase_requests as pr')
+        $recent = DB::table('request_logs as rl')
+            ->join('purchase_requests as pr', 'pr.id', '=', 'rl.request_id')
             ->join('stores as s', 's.id', '=', 'pr.store_id')
             ->select([
                 'pr.id',
@@ -40,21 +54,32 @@ class StatsController extends Controller
                 'pr.client_name',
                 'pr.client_code',
                 'pr.status',
-                'pr.updated_at',
+                'rl.action',
+                'rl.actor_name',
+                'rl.created_at',
                 DB::raw($storeNameExpr),
             ])
-            ->orderByDesc('pr.updated_at')
-            ->limit(5)
-            ->get();
+            ->orderByDesc('rl.created_at')
+            ->limit(6)
+            ->get()
+            ->map(function ($row) {
+                $row->status_label = $this->statusLabel($row->status ?? null);
+                $row->actor_name = $row->actor_name ?: 'system';
+                return $row;
+            });
 
         return response()->json([
-            'kpis' => [
-                'total' => $total,
-                'pending' => $pending,
-                'sentToSupervisor' => $sent,
-                'completed' => $completed,
+            'success' => true,
+            'data' => [
+                'kpis' => [
+                    'total' => $total,
+                    'pending' => $pending,
+                    'sentToSupervisor' => $sent,
+                    'completed' => $completed,
+                ],
+                'recentActivity' => $recent,
             ],
-            'recentActivity' => $recent,
+            'errors' => null,
         ]);
     }
 }

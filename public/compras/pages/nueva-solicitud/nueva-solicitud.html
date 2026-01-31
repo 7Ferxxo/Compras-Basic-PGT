@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="es">
   <head>
     <meta charset="utf-8" />
@@ -7,7 +7,7 @@
     <link rel="icon" href="/favicon.ico" />
     <link rel="stylesheet" href="nueva-solicitud.css" />
   </head>
-  <body data-page="nueva-solicitud">
+  <body data-page="nueva-solicitud" class="wizard-ready">
     <div class="app">
       <aside class="sidebar">
       </aside>
@@ -17,7 +17,7 @@
           <div class="title hero-title">
             <div class="muted hero-kicker">CREAR</div>
             <h1>Nueva solicitud</h1>
-            <p>Genera el recibo y crea la solicitud (BASIC) en Compras.</p>
+            <p>Crea una solicitud de compras y adjunta evidencias.</p>
             <div class="hero-steps">
               <div class="step-chip active" data-step="1"><span>1</span> Cliente</div>
               <div class="step-chip" data-step="2"><span>2</span> Pago</div>
@@ -31,7 +31,7 @@
         <section class="grid">
           <form id="receiptForm" class="card request-card receipt-card" style="grid-column: span 12;">
             <div class="section section-hero" style="border-top:none;padding-top:0;margin-top:0;">
-              <div class="section-title">Recibo</div>
+              <div class="section-title">Solicitud</div>
               <div id="receiptError" class="hint" style="display:none;"></div>
             </div>
 
@@ -56,21 +56,29 @@
                   </div>
                   <div class="row-2">
                     <div class="field">
-                      <div class="label">Sucursal</div>
-                      <select id="rSucursal">
-                        <option value="">Selecciona...</option>
-                        <option value="DAV">DAV</option>
-                        <option value="WEST">WEST</option>
-                        <option value="BGA">BGA</option>
-                        <option value="TA">TA</option>
-                        <option value="SF">SF</option>
-                        <option value="CP">CP</option>
-                        <option value="EAST">EAST</option>
-                      </select>
-                    </div>
-                    <div class="field">
                       <div class="label">Fecha</div>
                       <input id="rFecha" type="date" />
+                    </div>
+                    <div class="field">
+                      <div class="label">Sucursal</div>
+                      <input id="rSucursal" type="hidden" />
+                      <div class="select" id="rSucursalSelect">
+                        <button type="button" class="select-toggle" id="rSucursalToggle" aria-expanded="false">
+                          <span id="rSucursalLabel">Selecciona...</span>
+                          <span class="chev" aria-hidden="true">▾</span>
+                        </button>
+                        <div class="select-panel" id="rSucursalPanel">
+                          <div class="select-options" id="rSucursalOptions">
+                            <button type="button" class="select-option" data-value="DAV">DAV</button>
+                            <button type="button" class="select-option" data-value="WEST">WEST</button>
+                            <button type="button" class="select-option" data-value="BGA">BGA</button>
+                            <button type="button" class="select-option" data-value="TA">TA</button>
+                            <button type="button" class="select-option" data-value="SF">SF</button>
+                            <button type="button" class="select-option" data-value="CP">CP</button>
+                            <button type="button" class="select-option" data-value="EAST">EAST</button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -79,7 +87,7 @@
                   <div class="section-title">Pago</div>
                   <div class="field" style="margin-top: 0;">
                     <input id="rMetodoPago" type="hidden" />
-                    <div class="muted helper-text">Selecciona el método de pago para calcular la comisión.</div>
+                    <div class="muted helper-text">Selecciona el metodo de pago para calcular la comision.</div>
                     <div class="pay-grid" id="rPayGrid">
                       <div class="pay-option" role="button" tabindex="0" data-method="Transferencia">
                         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -151,7 +159,7 @@
                           />
                         </svg>
                       </div>
-                      <div class="dz-title">Capturas de cotización</div>
+                      <div class="dz-title">Capturas de cotizacion</div>
                       <div class="dz-sub" id="metaScreenshots">Pega (Ctrl+V) o doble click para seleccionar</div>
                       <input id="quoteScreenshots" class="dz-input" type="file" multiple />
                     </div>
@@ -183,8 +191,26 @@
                 <div class="section wizard-section" data-step="2">
                   <div class="section-title">Detalle</div>
                   <div class="field" style="margin-top:0;">
-                    <div class="label">Descripción</div>
-                    <textarea id="rDescripcion" placeholder="Ej: Compra en Amazon"></textarea>
+                    <div class="label">Tienda</div>
+                    <div class="muted helper-text">Selecciona la tienda para la solicitud.</div>
+                    <input id="rStoreId" type="hidden" />
+                    <div class="select" id="rStoreSelect">
+                      <button type="button" class="select-toggle" id="rStoreToggle" aria-expanded="false">
+                        <span id="rStoreLabel">Selecciona...</span>
+                        <span class="chev" aria-hidden="true">▾</span>
+                      </button>
+                      <div class="select-panel" id="rStorePanel">
+                        <div class="select-options" id="rStoreOptions"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="field" id="rStoreCustomWrap" style="display:none;">
+                    <div class="label">Tienda (otros)</div>
+                    <input id="rStoreCustomName" placeholder="Nombre de la tienda" />
+                  </div>
+                  <div class="field" style="margin-top:0;">
+                    <div class="label">Descripcion</div>
+                    <textarea id="rDescripcion" placeholder="Ej: información que desee añadir a la solicitud"></textarea>
                   </div>
                   <div class="row-2">
                     <div class="field">
@@ -199,7 +225,7 @@
 
                   <div class="receipt-summary" style="margin-top: 12px;">
                     <div style="display:flex;justify-content:space-between;gap:12px;">
-                      <span>comisión</span>
+                      <span>comision</span>
                       <b id="rComision">B/. 0.00</b>
                     </div>
                     <div style="display:flex;justify-content:space-between;gap:12px;margin-top:6px;">
@@ -248,7 +274,7 @@
                       <path d="M8 12h8M8 16h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
                     </svg>
                   </span>
-                  Generar Recibo
+                  Crear Solicitud
                 </button>
               </div>
             </div>
@@ -262,6 +288,7 @@
     <script src="nueva-solicitud.js"></script>
   </body>
 </html>
+
 
 
 

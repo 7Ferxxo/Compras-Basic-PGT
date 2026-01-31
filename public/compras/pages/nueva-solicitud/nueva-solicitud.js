@@ -12,7 +12,7 @@
       .replaceAll("'", "&#039;");
   }
 
-  function showReceiptError(message) {
+  function showMessage(message) {
     const el = $("#receiptError");
     if (!el) return;
     if (!message) {
@@ -25,7 +25,8 @@
   }
 
   function getValue(id) {
-    return (document.getElementById(id)?.value || "").trim();
+    const el = document.getElementById(id);
+    return (el?.value || "").trim();
   }
 
   function setText(id, value) {
@@ -39,10 +40,127 @@
     return `B/. ${n.toFixed(2)}`;
   }
 
+  function wireSearchSelect({ rootId, inputId, toggleId, panelId, searchId, optionsId, labelId, onSelect } = {}) {
+    const root = document.getElementById(rootId);
+    if (!root) return null;
+    const input = document.getElementById(inputId);
+    const toggle = document.getElementById(toggleId);
+    const panel = document.getElementById(panelId);
+    const search = searchId ? document.getElementById(searchId) : null;
+    const options = document.getElementById(optionsId);
+    const label = document.getElementById(labelId);
+
+    function setActive(value, text) {
+      const val = String(value || "");
+      if (input) input.value = val;
+      if (label) label.textContent = text || "Selecciona...";
+      options?.querySelectorAll(".select-option").forEach((b) => {
+        b.classList.toggle("active", (b.getAttribute("data-value") || "") === val);
+      });
+      if (onSelect) onSelect(val);
+    }
+
+    function open() {
+      root.classList.add("open");
+      toggle?.setAttribute("aria-expanded", "true");
+      search?.focus();
+    }
+
+    function close() {
+      root.classList.remove("open");
+      toggle?.setAttribute("aria-expanded", "false");
+      if (search) {
+        search.value = "";
+        filter("");
+      }
+    }
+
+    function filter(term) {
+      const q = String(term || "").toLowerCase();
+      options?.querySelectorAll(".select-option").forEach((b) => {
+        const text = (b.textContent || "").toLowerCase();
+        b.style.display = text.includes(q) ? "" : "none";
+      });
+    }
+
+    toggle?.addEventListener("click", () => {
+      if (root.classList.contains("open")) close();
+      else open();
+    });
+
+    options?.addEventListener("click", (e) => {
+      const btn = e.target.closest(".select-option");
+      if (!btn) return;
+      const value = btn.getAttribute("data-value") || "";
+      const text = btn.textContent || value;
+      setActive(value, text);
+      close();
+    });
+
+    search?.addEventListener("input", (e) => filter(e.target.value));
+
+    document.addEventListener("click", (e) => {
+      if (!root.contains(e.target)) close();
+    });
+
+    return { setActive, open, close };
+  }
+
+  function getReceiptMethod() {
+    return (document.getElementById("rMetodoPago")?.value || "").trim();
+  }
+
+  function setReceiptPaymentMethod(method) {
+    const input = document.getElementById("rMetodoPago");
+    if (input) input.value = method;
+
+    document.querySelectorAll("#rPayGrid .pay-option").forEach((el) => {
+      el.classList.toggle("active", el.getAttribute("data-method") === method);
+    });
+
+    updateReceiptTotals();
+  }
+
+  function updateReceiptTotals() {
+    const precio = Number(getValue("rPrecio"));
+    const metodo = getReceiptMethod();
+
+    const base = Number.isFinite(precio) ? precio : 0;
+    const comision = metodo === "Yappy" ? base * 0.02 : metodo === "Tarjeta" ? base * 0.03 : 0;
+    const total = base + comision;
+
+    const comEl = document.getElementById("rComision");
+    const totEl = document.getElementById("rTotal");
+    if (comEl) comEl.textContent = formatBalboa(comision);
+    if (totEl) totEl.textContent = formatBalboa(total);
+
+    updateSummary();
+  }
+
+  function updateEvidenceMeta() {
+    const inputScreens = document.getElementById("quoteScreenshots");
+    const inputProof = document.getElementById("paymentProof");
+    if (!inputScreens || !inputProof) return;
+
+    const screenshots = inputScreens.files || [];
+    const proof = inputProof.files?.[0];
+
+    const metaScreens = document.getElementById("metaScreenshots");
+    if (metaScreens) {
+      metaScreens.textContent = screenshots.length
+        ? `${screenshots.length} archivo(s) seleccionado(s)`
+        : "Selecciona archivos";
+    }
+
+    const metaProof = document.getElementById("metaPaymentProof");
+    if (metaProof) {
+      metaProof.textContent = proof ? proof.name : "Selecciona archivo";
+    }
+  }
+
   function filesFromClipboard(e) {
     const dt = e.clipboardData;
     if (!dt) return [];
-
     const out = [];
     const items = Array.from(dt.items || []);
     for (const it of items) {
@@ -83,42 +201,13 @@
     input.files = dt.files;
   }
 
-  function getReceiptMethod() {
-    return ($("#rMetodoPago")?.value || "").trim();
-  }
-
-  function setReceiptPaymentMethod(method) {
-    const input = $("#rMetodoPago");
-    if (input) input.value = method;
-
-    document.querySelectorAll("#rPayGrid .pay-option").forEach((el) => {
-      el.classList.toggle("active", el.getAttribute("data-method") === method);
-    });
-
-    updateReceiptTotals();
-  }
-
-  function updateReceiptTotals() {
-    const precio = Number(($("#rPrecio")?.value || "").trim());
-    const metodo = getReceiptMethod();
-
-    const base = Number.isFinite(precio) ? precio : 0;
-    const comision = metodo === "Yappy" ? base * 0.02 : metodo === "Tarjeta" ? base * 0.03 : 0;
-    const total = base + comision;
-
-    const comEl = $("#rComision");
-    const totEl = $("#rTotal");
-    if (comEl) comEl.textContent = formatBalboa(comision);
-    if (totEl) totEl.textContent = formatBalboa(total);
-
-    updateSummary();
-  }
-
-  function wireEvidenceDropzones() {
-    const pasteCatcher = $("#pasteCatcher");
-    const inputScreens = $("#quoteScreenshots");
-    const inputProof = $("#paymentProof");
+  function wireEvidenceInputs() {
+    const inputScreens = document.getElementById("quoteScreenshots");
+    const inputProof = document.getElementById("paymentProof");
     if (!inputScreens || !inputProof) return;
+
+    inputScreens.addEventListener("change", updateEvidenceMeta);
+    inputProof.addEventListener("change", updateEvidenceMeta);
 
     let activeInputId = "quoteScreenshots";
 
@@ -127,32 +216,6 @@
       if (zone) zone.classList.add("active");
       const inputId = zone?.getAttribute?.("data-input");
       if (inputId) activeInputId = inputId;
-      if (pasteCatcher) {
-        pasteCatcher.value = "";
-        pasteCatcher.focus();
-      }
-    }
-
-    function updateMeta() {
-      const screenshots = inputScreens.files || [];
-      const proof = inputProof.files?.[0];
-
-      const metaScreens = $("#metaScreenshots");
-      if (metaScreens) {
-        metaScreens.textContent = screenshots.length
-          ? `${screenshots.length} archivo(s) seleccionado(s)`
-          : "Pega (Ctrl+V) o doble click para seleccionar";
-      }
-
-      const metaProof = $("#metaPaymentProof");
-      if (metaProof) {
-        metaProof.textContent = proof ? proof.name : "Pega (Ctrl+V) o doble click para seleccionar";
-      }
-    }
-
-    function openPickerFor(inputId) {
-      const input = inputId === "paymentProof" ? inputProof : inputScreens;
-      input.click();
     }
 
     function onPaste(e) {
@@ -163,23 +226,18 @@
       const target = isScreens ? inputScreens : inputProof;
       const normalized = normalizePastedFiles(files, { allowMultiple: isScreens });
       setFilesOnInput(target, normalized, { append: isScreens });
-      updateMeta();
+      updateEvidenceMeta();
       e.preventDefault();
     }
 
     document.addEventListener("paste", onPaste);
 
-    inputScreens.addEventListener("change", updateMeta);
-    inputProof.addEventListener("change", updateMeta);
-
     document.querySelectorAll(".dropzone").forEach((zone) => {
-      zone.addEventListener("click", () => setActiveZone(zone));
-      zone.addEventListener("dblclick", () => openPickerFor(zone.getAttribute("data-input")));
-      zone.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          openPickerFor(zone.getAttribute("data-input"));
-        }
+      zone.addEventListener("click", () => {
+        setActiveZone(zone);
+        const inputId = zone.getAttribute("data-input");
+        const target = inputId === "paymentProof" ? inputProof : inputScreens;
+        target.click();
       });
 
       zone.addEventListener("dragover", (e) => {
@@ -200,18 +258,11 @@
         const isScreens = inputId === "quoteScreenshots";
         const target = isScreens ? inputScreens : inputProof;
         setFilesOnInput(target, dropped, { append: isScreens });
-        updateMeta();
+        updateEvidenceMeta();
       });
     });
 
-    setActiveZone(document.querySelector('.dropzone[data-input="quoteScreenshots"]'));
-    updateMeta();
-  }
-
-  function setCasStatus(text) {
-    const el = $("#rCasilleroStatus");
-    if (!el) return;
-    el.textContent = text || "";
+    updateEvidenceMeta();
   }
 
   function todayIso() {
@@ -231,13 +282,13 @@
     setText("sumFecha", getValue("rFecha"));
     setText("sumMetodo", getReceiptMethod() || "-");
     setText("sumPrecio", getValue("rPrecio") ? `B/. ${Number(getValue("rPrecio") || 0).toFixed(2)}` : "-");
-    setText("sumComision", $("#rComision")?.textContent || "-");
-    setText("sumTotal", $("#rTotal")?.textContent || "-");
+    setText("sumComision", document.getElementById("rComision")?.textContent || "-");
+    setText("sumTotal", document.getElementById("rTotal")?.textContent || "-");
     setText("sumLink", getValue("rLinkProducto") || "-");
     setText("sumDesc", getValue("rDescripcion") || "-");
 
-    const screenshots = $("#quoteScreenshots")?.files || [];
-    const proof = $("#paymentProof")?.files?.[0];
+    const screenshots = document.getElementById("quoteScreenshots")?.files || [];
+    const proof = document.getElementById("paymentProof")?.files?.[0];
     const evidenceText = `${screenshots.length} captura(s)${proof ? " + comprobante" : ""}`;
     setText("sumEvidencias", screenshots.length || proof ? evidenceText : "Sin evidencias");
   }
@@ -253,22 +304,22 @@
       chip.classList.toggle("active", s === currentStep);
     });
 
-    $("#wizardBack")?.classList.toggle("is-hidden", currentStep === 1);
-    $("#wizardNext")?.classList.toggle("is-hidden", currentStep === totalSteps);
-    $("#rSubmitBtn")?.classList.toggle("is-hidden", currentStep !== totalSteps);
+    document.getElementById("wizardBack")?.classList.toggle("is-hidden", currentStep === 1);
+    document.getElementById("wizardNext")?.classList.toggle("is-hidden", currentStep === totalSteps);
+    document.getElementById("rSubmitBtn")?.classList.toggle("is-hidden", currentStep !== totalSteps);
 
     updateSummary();
-    showReceiptError(null);
+    showMessage(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function showAndFail(message) {
-    showReceiptError(message);
+    showMessage(message);
     return false;
   }
 
   function validateStep(step) {
-    if (step == 1) {
+    if (step === 1) {
       if (!getValue("rCasillero")) return showAndFail("Casillero es obligatorio.");
       if (!getValue("rCliente")) return showAndFail("Nombre del cliente es obligatorio.");
       if (!getValue("rEmail")) return showAndFail("Email del cliente es obligatorio.");
@@ -276,10 +327,19 @@
       if (!getValue("rFecha")) return showAndFail("Fecha es obligatoria.");
       return true;
     }
-    if (step == 2) {
+    if (step === 2) {
+      if (!getValue("rStoreId")) return showAndFail("Tienda es obligatoria.");
+      if (getValue("rStoreId") === "7" && !getValue("rStoreCustomName")) {
+        return showAndFail("Nombre de la tienda es obligatorio.");
+      }
       if (!getReceiptMethod()) return showAndFail("Metodo de pago es obligatorio.");
       const precio = Number(getValue("rPrecio"));
       if (!Number.isFinite(precio) || precio <= 0) return showAndFail("Precio invalido.");
+      return true;
+    }
+    if (step === 3) {
+      const screenshots = document.getElementById("quoteScreenshots")?.files || [];
+      if (!screenshots.length) return showAndFail("Debes adjuntar al menos una captura.");
       return true;
     }
     return true;
@@ -287,11 +347,57 @@
 
   async function init() {
     document.body.classList.add("wizard-ready");
-    const rFecha = $("#rFecha");
+    const rFecha = document.getElementById("rFecha");
     if (rFecha && !rFecha.value) rFecha.value = todayIso();
 
     updateReceiptTotals();
-    wireEvidenceDropzones();
+    wireEvidenceInputs();
+
+    wireSearchSelect({
+      rootId: "rSucursalSelect",
+      inputId: "rSucursal",
+      toggleId: "rSucursalToggle",
+      panelId: "rSucursalPanel",
+      optionsId: "rSucursalOptions",
+      labelId: "rSucursalLabel",
+    });
+
+    const storeCustomWrap = document.getElementById("rStoreCustomWrap");
+    const storeCustomInput = document.getElementById("rStoreCustomName");
+    const handleStoreSelect = (value) => {
+      const isOtros = String(value) === "7";
+      if (storeCustomWrap) storeCustomWrap.style.display = isOtros ? "" : "none";
+      if (!isOtros && storeCustomInput) storeCustomInput.value = "";
+    };
+    const storeSelect = wireSearchSelect({
+      rootId: "rStoreSelect",
+      inputId: "rStoreId",
+      toggleId: "rStoreToggle",
+      panelId: "rStorePanel",
+      optionsId: "rStoreOptions",
+      labelId: "rStoreLabel",
+      onSelect: handleStoreSelect,
+    });
+
+    try {
+      const data = await window.PGT.api.listStores();
+      const items = data.items || [];
+      const storeOptions = document.getElementById("rStoreOptions");
+      if (storeOptions) {
+        storeOptions.innerHTML = items
+          .map((s) => {
+            const name = String(s.name || "").toUpperCase();
+            return `<button type="button" class="select-option" data-value="${s.id}">${escapeHtml(name)}</button>`;
+          })
+          .join("");
+        if (items.length && storeSelect) {
+          storeSelect.setActive(String(items[0].id), String(items[0].name || "").toUpperCase());
+          handleStoreSelect(String(items[0].id));
+        }
+      }
+    } catch (e) {
+      showMessage("No se pudo cargar tiendas. Intenta recargar.");
+    }
 
     document.querySelectorAll("#rPayGrid .pay-option").forEach((el) => {
       const method = el.getAttribute("data-method");
@@ -305,18 +411,20 @@
       });
     });
 
-    $("#rPrecio")?.addEventListener("input", updateReceiptTotals);
-    $("#rPrecio")?.addEventListener("change", updateReceiptTotals);
+    document.getElementById("rPrecio")?.addEventListener("input", updateReceiptTotals);
+    document.getElementById("rPrecio")?.addEventListener("change", updateReceiptTotals);
 
+    const rCasillero = document.getElementById("rCasillero");
     let lookupTimer = null;
     let lastLookupCasillero = "";
     let abortController = null;
 
     async function lookupCliente() {
-      const cas = ($("#rCasillero")?.value || "").trim();
+      const cas = (rCasillero?.value || "").trim();
       if (!cas) {
         lastLookupCasillero = "";
-        setCasStatus("");
+        const el = document.getElementById("rCasilleroStatus");
+        if (el) el.textContent = "";
         return;
       }
       if (cas === lastLookupCasillero) return;
@@ -325,38 +433,43 @@
       if (abortController) abortController.abort();
       abortController = new AbortController();
 
-      const snapshotCliente = $("#rCliente")?.value ?? "";
-      const snapshotEmail = $("#rEmail")?.value ?? "";
+      const snapshotCliente = document.getElementById("rCliente")?.value ?? "";
+      const snapshotEmail = document.getElementById("rEmail")?.value ?? "";
 
-      setCasStatus("Buscando cliente…");
+      const statusEl = document.getElementById("rCasilleroStatus");
+      if (statusEl) statusEl.textContent = "Buscando cliente...";
       try {
         const res = await fetch(`/api/cliente/${encodeURIComponent(cas)}`, { signal: abortController.signal });
         if (res.ok) {
           const data = await res.json();
-          if ($("#rCliente") && $("#rCliente").value === snapshotCliente) $("#rCliente").value = data.cliente ?? "";
-          if ($("#rEmail") && $("#rEmail").value === snapshotEmail) $("#rEmail").value = data.email_cliente ?? "";
-          setCasStatus("Cliente encontrado.");
+          if (document.getElementById("rCliente")?.value === snapshotCliente) {
+            document.getElementById("rCliente").value = data.cliente ?? "";
+          }
+          if (document.getElementById("rEmail")?.value === snapshotEmail) {
+            document.getElementById("rEmail").value = data.email_cliente ?? "";
+          }
+          if (statusEl) statusEl.textContent = "Cliente encontrado.";
           return;
         }
         if (res.status === 404) {
-          setCasStatus("Casillero no encontrado: completa nombre y email.");
+          if (statusEl) statusEl.textContent = "Casillero no encontrado: completa nombre y email.";
           return;
         }
-        setCasStatus("No se pudo consultar el cliente.");
+        if (statusEl) statusEl.textContent = "No se pudo consultar el cliente.";
       } catch (e) {
         if (e?.name === "AbortError") return;
-        setCasStatus("Error consultando el cliente.");
+        if (statusEl) statusEl.textContent = "Error consultando el cliente.";
       }
     }
 
-    $("#rCasillero")?.addEventListener("input", () => {
+    rCasillero?.addEventListener("input", () => {
       if (lookupTimer) clearTimeout(lookupTimer);
       lookupTimer = setTimeout(lookupCliente, 400);
     });
-    $("#rCasillero")?.addEventListener("blur", lookupCliente);
+    rCasillero?.addEventListener("blur", lookupCliente);
 
-    $("#wizardBack")?.addEventListener("click", () => setStep(currentStep - 1));
-    $("#wizardNext")?.addEventListener("click", () => {
+    document.getElementById("wizardBack")?.addEventListener("click", () => setStep(currentStep - 1));
+    document.getElementById("wizardNext")?.addEventListener("click", () => {
       if (!validateStep(currentStep)) return;
       setStep(currentStep + 1);
     });
@@ -372,84 +485,64 @@
       });
     });
 
-    $("#receiptForm")?.addEventListener("submit", async (e) => {
+    document.getElementById("receiptForm")?.addEventListener("submit", async (e) => {
       e.preventDefault();
-      showReceiptError(null);
+      showMessage(null);
 
-      const cliente = ($("#rCliente")?.value || "").trim();
-      const casillero = ($("#rCasillero")?.value || "").trim();
-      const email = ($("#rEmail")?.value || "").trim();
-      const sucursal = ($("#rSucursal")?.value || "").trim();
-      const fecha = ($("#rFecha")?.value || "").trim();
+      if (!validateStep(1) || !validateStep(2) || !validateStep(3)) return;
+
+      const cliente = getValue("rCliente");
+      const casillero = getValue("rCasillero");
+      const email = getValue("rEmail");
+      const sucursal = getValue("rSucursal");
+      const fecha = getValue("rFecha");
       const metodo_pago = getReceiptMethod();
-      const tipo_servicio = "BASIC";
-      const link_producto = ($("#rLinkProducto")?.value || "").trim();
-      const descripcion = ($("#rDescripcion")?.value || "").trim();
-      const precio = Number(($("#rPrecio")?.value || "").trim());
+      const link_producto = getValue("rLinkProducto");
+      const descripcion = getValue("rDescripcion");
+      const precio = Number(getValue("rPrecio"));
+      const storeId = getValue("rStoreId");
+      const storeCustomName = getValue("rStoreCustomName");
 
-      if (!casillero) return showReceiptError("Casillero es obligatorio.");
-      if (!cliente) return showReceiptError("Nombre del cliente es obligatorio.");
-      if (!email) return showReceiptError("Email del cliente es obligatorio.");
-      if (!sucursal) return showReceiptError("Sucursal es obligatoria.");
-      if (!fecha) return showReceiptError("Fecha es obligatoria.");
-      if (!metodo_pago) return showReceiptError("Método de pago es obligatorio.");
-      if (!Number.isFinite(precio) || precio <= 0) return showReceiptError("Precio inválido.");
+      const screenshots = document.getElementById("quoteScreenshots")?.files || [];
+      const proof = document.getElementById("paymentProof")?.files?.[0];
 
-      $("#rSubmitBtn").disabled = true;
+      const submitBtn = document.getElementById("rSubmitBtn");
+      if (submitBtn) submitBtn.disabled = true;
       try {
-        const payload = {
-          cliente,
-          casillero,
-          email_cliente: email,
-          sucursal,
-          fecha,
-          metodo_pago,
-          tipo_servicio,
-          link_producto: link_producto || null,
-          items: [{ descripcion: descripcion || null, precio }],
-        };
+        const noteLines = [];
+        if (descripcion) noteLines.push(descripcion);
+        if (sucursal) noteLines.push(`Sucursal: ${sucursal}`);
+        if (fecha) noteLines.push(`Fecha: ${fecha}`);
+        const notes = noteLines.join("\n");
 
-        const res = await fetch("/crear-factura", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
+        const fd = new FormData();
+        fd.set("clientName", cliente);
+        fd.set("clientCode", casillero);
+        fd.set("accountEmail", email);
+        fd.set("contactChannel", "Formulario");
+        fd.set("paymentMethod", metodo_pago);
+        fd.set("itemLink", link_producto);
+        fd.set("itemOptions", descripcion || "");
+        fd.set("quotedTotal", String(precio));
+        fd.set("itemQuantity", "1");
+        if (storeId) fd.set("storeId", storeId);
+        if (storeId === "7" && storeCustomName) fd.set("storeCustomName", storeCustomName);
+        if (notes) fd.set("notes", notes);
 
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data?.message || `HTTP ${res.status}`);
+        Array.from(screenshots).forEach((f) => fd.append("quoteScreenshots", f));
+        if (proof) fd.append("paymentProof", proof);
 
-        const screenshots = $("#quoteScreenshots")?.files || [];
-        const proof = $("#paymentProof")?.files?.[0];
-        const reciboId = data?.id_recibo;
-
-        if (reciboId) {
-          try {
-            const fd = new FormData();
-            Array.from(screenshots).forEach((f) => fd.append("quoteScreenshots", f));
-            if (proof) fd.append("paymentProof", proof);
-
-            fd.set("cliente", cliente);
-            fd.set("casillero", casillero);
-            fd.set("metodo_pago", metodo_pago);
-            fd.set("descripcion_compra", descripcion);
-            fd.set("monto_pagado", String(precio));
-            fd.set("link_producto", link_producto || "");
-
-            await fetch(`/api/purchase-requests/receipt/${encodeURIComponent(reciboId)}/attachments`, {
-              method: "POST",
-              body: fd,
-            });
-          } catch {
-            // No bloquea el flujo si el recibo ya se generó.
-          }
+        const data = await window.PGT.api.createRequest(fd);
+        showMessage(`Solicitud creada: ${data.code}`);
+        if (data?.id) {
+          setTimeout(() => {
+            window.location.href = "../solicitudes/solicitudes.html";
+          }, 700);
         }
-
-        showReceiptError(data?.message || "Recibo generado.");
-        if (data.pdf_url) window.open(data.pdf_url, "_blank", "noopener");
       } catch (err) {
-        showReceiptError(err?.message || "Error generando recibo.");
+        showMessage(err?.message || "Error creando solicitud.");
       } finally {
-        $("#rSubmitBtn").disabled = false;
+        if (submitBtn) submitBtn.disabled = false;
       }
     });
 
@@ -472,6 +565,6 @@
   }
 
   document.addEventListener("DOMContentLoaded", () => {
-    init().catch((e) => showReceiptError(`Error inicializando: ${e.message}`));
+    init().catch((e) => showMessage(`Error inicializando: ${e.message}`));
   });
 })();
