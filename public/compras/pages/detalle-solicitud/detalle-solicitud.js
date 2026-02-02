@@ -88,7 +88,7 @@
   }
 
   function groupAttachments(attachments) {
-    const groups = { QUOTE_SCREENSHOT: [] };
+    const groups = { QUOTE_SCREENSHOT: [], PAYMENT_PROOF: [] };
     (attachments || []).forEach((a) => {
       if (!groups[a.type]) groups[a.type] = [];
       groups[a.type].push(a);
@@ -107,7 +107,8 @@
     $("#link").innerHTML = itemLink
       ? `<a href="${escapeHtml(itemLink)}" target="_blank" rel="noreferrer">${escapeHtml(itemLink)}</a>`
       : "-";
-    $("#options").textContent = r.item_options || "-";
+    const optionsEl = $("#options");
+    if (optionsEl) optionsEl.textContent = r.item_options || "-";
     $("#qty").textContent = String(r.item_quantity || 1);
     $("#quotedTotal").textContent = money(r.quoted_total);
     const chargeResidential = $("#chargeResidential");
@@ -125,6 +126,13 @@
     $("#attachmentsQuote").innerHTML = groups.QUOTE_SCREENSHOT.length
       ? groups.QUOTE_SCREENSHOT.map(renderAttachment).join("")
       : `<div class="muted">Sin capturas.</div>`;
+
+    const paymentEl = $("#attachmentsPayment");
+    if (paymentEl) {
+      paymentEl.innerHTML = groups.PAYMENT_PROOF.length
+        ? groups.PAYMENT_PROOF.map(renderAttachment).join("")
+        : `<div class="muted">Sin comprobante.</div>`;
+    }
 
     $("#logs").innerHTML = r.logs?.length
       ? `<table class="table">
@@ -197,9 +205,16 @@
       });
 
     } catch (e) {
-      $("#detailRoot").innerHTML = `<div class="hint">Error cargando detalle: ${escapeHtml(
-        e.message,
-      )}</div>`;
+      let message = e.message;
+      try {
+        const health = await window.PGT.api.checkHealth();
+        if (!health.ok && health.data?.code === "db_unreachable") {
+          message = "No hay conexion a la base de datos. Verifica que el servidor este encendido.";
+        }
+      } catch {
+        // Keep original message if healthcheck fails.
+      }
+      $("#detailRoot").innerHTML = `<div class="hint">Error cargando detalle: ${escapeHtml(message)}</div>`;
     }
   }
 

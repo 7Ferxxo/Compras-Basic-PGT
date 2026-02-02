@@ -536,7 +536,7 @@
         showMessage(`Solicitud creada: ${data.code}`);
         if (data?.id) {
           setTimeout(() => {
-            window.location.href = "../solicitudes/solicitudes.html";
+            window.location.href = "../solicitudes-compra/solicitudes-compra.html";
           }, 700);
         }
       } catch (err) {

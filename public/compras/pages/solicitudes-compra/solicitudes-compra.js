@@ -78,23 +78,23 @@
             .map(
               (r) => `
                 <tr>
-                  <td><a href=\"../detalle-solicitud/detalle-solicitud.html?id=${encodeURIComponent(r.id)}\">${escapeHtml(
+                  <td data-label=\"Codigo\"><a href=\"../detalle-solicitud/detalle-solicitud.html?id=${encodeURIComponent(r.id)}\">${escapeHtml(
                 r.code,
               )}</a></td>
-                  <td>${escapeHtml(r.client_name)}<div class=\"muted\">${escapeHtml(
+                  <td data-label=\"Cliente\">${escapeHtml(r.client_name)}<div class=\"muted\">${escapeHtml(
                 r.client_code,
               )}</div></td>
-                  <td>${escapeHtml(r.store_name)}</td>
-                  <td>${statusPill(r.status, r.status_label)}</td>
-                  <td>${money(
+                  <td data-label=\"Tienda\">${escapeHtml(r.store_name)}</td>
+                  <td data-label=\"Estado\">${statusPill(r.status, r.status_label)}</td>
+                  <td data-label=\"Total\">${money(
                     Number(r.quoted_total || 0) +
                       Number(r.residential_charge || 0) +
                       Number(r.american_card_charge || 0),
                   )}</td>
-                  <td>
-                    <div style=\"display:flex;gap:8px;flex-wrap:wrap;align-items:center;\">
+                  <td data-label=\"Acciones\">
+                    <div class=\"actions-row\">
                       <a class=\"btn\" href=\"../detalle-solicitud/detalle-solicitud.html?id=${encodeURIComponent(r.id)}\">Ver</a>
-                      <select class=\"statusSelect\" data-id=\"${r.id}\" style=\"padding:10px 10px;border-radius:999px;\">
+                      <select class=\"statusSelect\" data-id=\"${r.id}\" data-current=\"${r.status}\" data-allow-completed=\"0\" style=\"padding:10px 10px;border-radius:999px;\">
                         ${[
                           { value: "pending", label: "Pendiente" },
                           { value: "sent_to_supervisor", label: "Enviada al Supervisor" },
@@ -109,7 +109,6 @@
                           )
                           .join("")}
                       </select>
-                      <button class=\"btn statusSave\" data-id=\"${r.id}\" type=\"button\">Actualizar</button>
                       <a class=\"btn ${r.payment_proof_url ? "" : "disabled"}\"
                          ${r.payment_proof_url ? `href=\"${r.payment_proof_url}\"` : ""}
                          ${r.payment_proof_url ? "target=\"_blank\" rel=\"noreferrer\"" : ""}
@@ -126,20 +125,36 @@
       </table>
     `;
 
-    document.querySelectorAll(".statusSave").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        const id = btn.getAttribute("data-id");
-        const sel = document.querySelector(`.statusSelect[data-id=\"${id}\"]`);
-        const status = sel?.value;
-        const note = prompt("Nota (opcional) para bitacora:", "") || "";
+    document.querySelectorAll(".statusSelect").forEach((sel) => {
+      sel.addEventListener("change", async () => {
+        const id = sel.getAttribute("data-id");
+        const prev = sel.dataset.current || "pending";
+        const next = sel.value;
+        if (next === prev) return;
+
+        if (next === "completed") {
+          const code = prompt("Codigo para marcar como Completada:", "");
+          if (code !== "2806") {
+            alert("Codigo incorrecto.");
+            sel.value = prev;
+            return;
+          }
+          sel.dataset.allowCompleted = "1";
+        } else {
+          sel.dataset.allowCompleted = "0";
+        }
+
+        const note = prompt("Nota (opcional) para registro:", "") || "";
         try {
-          btn.disabled = true;
-          await window.PGT.api.patchStatus(id, { status, note });
+          sel.disabled = true;
+          await window.PGT.api.patchStatus(id, { status: next, note });
+          sel.dataset.current = next;
           await loadList(1);
         } catch (e) {
+          sel.value = prev;
           alert(e.message);
         } finally {
-          btn.disabled = false;
+          sel.disabled = false;
         }
       });
     });
@@ -156,6 +171,10 @@
     const data = await window.PGT.api.listRequests(params);
     renderTable(data.items);
     renderPager(data.pagination);
+    const meta = $("#resultsMeta");
+    if (meta && data.pagination) {
+      meta.textContent = `${data.pagination.total || 0} solicitudes`;
+    }
   }
 
   function renderPager(p) {
@@ -178,6 +197,10 @@
 
   async function init() {
     try {
+      const u = new URL(location.href);
+      const presetQ = u.searchParams.get("q");
+      if (presetQ && $("#filterQ")) $("#filterQ").value = presetQ;
+
       await loadStores();
       $("#filtersForm")?.addEventListener("submit", (e) => {
         e.preventDefault();

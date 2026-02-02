@@ -3,26 +3,30 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>PGT - Solicitudes</title>
+    <title>PGT - Solicitudes de compra</title>
     <link rel="icon" href="/favicon.ico" />
-    <link rel="stylesheet" href="solicitudes.css" />
+    <link rel="stylesheet" href="solicitudes-compra.css" />
   </head>
-  <body data-page="solicitudes">
+  <body data-page="solicitudes-compra">
     <div class="app">
       <aside class="sidebar">
       </aside>
 
       <main class="main">
-        <div class="topbar">
-          <div class="title">
-            <div class="muted" style="font-weight: 900; letter-spacing: 0.6px;">SOLICITUDES</div>
+        <div class="topbar hero">
+          <div class="title hero-title">
+            <div class="muted kicker">SOLICITUDES DE COMPRA</div>
             <h1>Solicitudes de compra</h1>
             <p>Lista con filtros por tienda, estado y busqueda.</p>
+            <div class="hero-meta">
+              <div class="meta-chip" id="resultsMeta">Cargando...</div>
+            </div>
           </div>
           <a class="btn primary" href="../nueva-solicitud/nueva-solicitud.html">Nueva solicitud</a>
         </div>
 
-        <section class="card">
+        <section class="card filters-card">
+          <div class="card-title">Filtros</div>
           <form id="filtersForm" class="filters">
             <label>
               Busqueda
@@ -46,20 +50,23 @@
                 <option value="cancelled">Cancelada</option>
               </select>
             </label>
-            <div>
+            <div class="filters-actions">
               <button class="btn" type="submit">Aplicar</button>
             </div>
           </form>
+        </section>
 
-          <div id="requestsTable" class="muted">Cargando...</div>
-          <div id="pager"></div>
+        <section class="card requests-card">
+          <div class="card-title">Solicitudes</div>
+          <div id="requestsTable" class="table-wrap muted">Cargando...</div>
+          <div id="pager" class="pager"></div>
         </section>
       </main>
     </div>
 
     <script src="../../shared/layout.js"></script>
     <script src="../../shared/api.js"></script>
-    <script src="solicitudes.js"></script>
+    <script src="solicitudes-compra.js"></script>
   </body>
 </html>
 

@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Facturacion\FacturaController;
 use App\Http\Controllers\Compras\PurchaseRequestsController;
 use App\Http\Controllers\Compras\StatsController;
@@ -25,7 +26,23 @@ Route::get('/get-recibos', [FacturaController::class, 'obtenerRecibos']);
 Route::get('/api/cliente/{casillero}', [FacturaController::class, 'buscarCliente']);
 Route::get('/recibos/{id}/pdf', [FacturaController::class, 'verPdf']);
 
-                                                                     
+Route::get('/api/health', function () {
+    try {
+        DB::connection()->getPdo();
+        return response()->json([
+            'ok' => true,
+            'service' => 'api',
+            'time' => now()->toISOString(),
+        ]);
+    } catch (\Throwable $e) {
+        return response()->json([
+            'ok' => false,
+            'code' => 'db_unreachable',
+            'message' => 'No hay conexion a la base de datos',
+        ], 503);
+    }
+});
+
 Route::get('/api/stats', [StatsController::class, 'index']);
 Route::get('/api/stores', [StoresController::class, 'index']);
 Route::get('/api/purchase-requests', [PurchaseRequestsController::class, 'index']);

@@ -12,8 +12,8 @@
     if (fromAttr) return fromAttr;
     const p = location.pathname.replaceAll("\\", "/");
     if (p.includes("/pages/panel-compras/")) return "panel-compras";
-    if (p.includes("/pages/solicitudes/")) return "solicitudes";
-    if (p.includes("/pages/compras/")) return "compras";
+    if (p.includes("/pages/solicitudes-compra/")) return "solicitudes-compra";
+    if (p.includes("/pages/compras/")) return "solicitudes-compra";
     if (p.includes("/pages/nueva-solicitud/")) return "nueva-solicitud";
     if (p.includes("/pages/detalle-solicitud/")) return "detalle-solicitud";
     return "";
@@ -24,15 +24,14 @@
     const assetLogo = `${base}assets/logo-pgt.png`;
 
     const panelHref = `${base}pages/panel-compras/panel-compras.html`;
-    const solicitudesHref = `${base}pages/solicitudes/solicitudes.html`;
-    const comprasHref = `${base}pages/compras/compras.html`;
+    const solicitudesHref = `${base}pages/solicitudes-compra/solicitudes-compra.html`;
     const nuevaHref = `${base}pages/nueva-solicitud/nueva-solicitud.html`;
 
     return `
       <div class="brand">
         <img src="${assetLogo}" alt="PGT" />
         <div class="name">
-          <span>Solicitud de compras</span>
+          <span>Solicitudes de compra</span>
         </div>
       </div>
 
@@ -66,7 +65,7 @@
           Nueva solicitud
         </a>
 
-        <a class="${active === "solicitudes" ? "active" : ""}" href="${solicitudesHref}">
+        <a class="${active === "solicitudes-compra" ? "active" : ""}" href="${solicitudesHref}">
           <span class="ico" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none">
               <path
@@ -78,24 +77,7 @@
               />
             </svg>
           </span>
-          Solicitudes
-        </a>
-
-        <a class="${active === "compras" ? "active" : ""}" href="${comprasHref}">
-          <span class="ico" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none">
-              <path
-                d="M6 7h15l-1.5 10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 4H3"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-              <path d="M9 22a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" fill="currentColor" />
-              <path d="M18 22a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" fill="currentColor" />
-            </svg>
-          </span>
-          Compras
+          Solicitudes de compra
         </a>
       </nav>
     `;

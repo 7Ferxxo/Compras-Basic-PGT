@@ -54,6 +54,11 @@
   window.PGT = window.PGT || {};
   window.PGT.api = {
     API_BASE,
+    checkHealth: async () => {
+      const res = await fetch(API_BASE + "/api/health");
+      const data = await res.json().catch(() => ({}));
+      return { ok: res.ok, status: res.status, data };
+    },
     getStats: () => requestJson("/api/stats"),
     listStores: () => requestJson("/api/stores"),
     listRequests: (params) => requestJson("/api/purchase-requests" + qs(params)),

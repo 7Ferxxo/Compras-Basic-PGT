@@ -17,9 +17,9 @@
           <div class="title">
             <div class="muted" style="font-weight: 900; letter-spacing: 0.6px;">DETALLE</div>
             <h1>Solicitud <span id="code">-</span></h1>
-            <p>Datos, adjuntos y bitacora.</p>
+            <p>Datos, adjuntos y registro.</p>
           </div>
-          <a class="btn" href="../solicitudes/solicitudes.html">Volver</a>
+          <a class="btn" href="../solicitudes-compra/solicitudes-compra.html">Volver</a>
         </div>
 
         <div id="detailRoot" class="grid">
@@ -39,10 +39,8 @@
                 <div id="link" style="margin-top: 6px;">-</div>
               </div>
               <div>
-                <div class="muted">Correo (si aplica)</div>
+                <div class="muted">Correo</div>
                 <div id="accountEmail" style="margin: 6px 0 12px;">-</div>
-                <div class="muted">Opciones / variantes</div>
-                <div id="options" style="margin: 6px 0 12px;">-</div>
                 <div class="muted">Cantidad de articulos</div>
                 <div id="qty" style="margin: 6px 0 12px;">-</div>
                 <div class="muted">Total cotizado</div>
@@ -50,7 +48,7 @@
                 <div class="muted">Cargos</div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px;">
                   <div class="card" style="box-shadow: none; background: rgba(255, 255, 255, 0.55);">
-                    <div class="muted">Uso de la tarjeta</div>
+                    <div class="muted">comisión</div>
                     <div id="chargeCard" style="font-weight: 900;">-</div>
                   </div>
                 </div>
@@ -67,8 +65,13 @@
           </div>
 
           <div class="card" style="grid-column: span 6;">
-            <h2>Adjuntos - Capturas</h2>
+            <h2>Cotización</h2>
             <div id="attachmentsQuote" class="muted">-</div>
+          </div>
+
+          <div class="card" style="grid-column: span 6;">
+            <h2>Comprobante</h2>
+            <div id="attachmentsPayment" class="muted">-</div>
           </div>
 
           <div class="card" style="grid-column: span 12;">

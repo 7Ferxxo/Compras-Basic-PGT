@@ -173,6 +173,10 @@ document.addEventListener('DOMContentLoaded', () => {
             facturaForm.reset();
             actualizarTotales();
             fechaInput.value = new Date().toISOString().split('T')[0];
+
+            // Al terminar el facturador (etapa 1), enviar al modulo de Solicitudes de compra.
+            const q = encodeURIComponent(datosRecibo.casillero || '');
+            window.location.href = '/compras/pages/solicitudes-compra/solicitudes-compra.html' + (q ? ('?q=' + q) : '');
         })
         .catch((error) => {
             console.error('Error:', error);

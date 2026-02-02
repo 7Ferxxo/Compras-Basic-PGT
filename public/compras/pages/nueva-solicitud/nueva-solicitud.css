@@ -3,9 +3,6 @@
 
 body[data-page="nueva-solicitud"]{
   font-family: "Space Grotesk", "Sora", "Segoe UI", sans-serif;
-  background: radial-gradient(1400px 520px at 15% 0%, rgba(254,243,199,.55), transparent 55%),
-    radial-gradient(1200px 520px at 95% 10%, rgba(219,234,254,.65), transparent 55%),
-    linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
 }
 
 .request-card{
@@ -106,25 +103,6 @@ body[data-page="nueva-solicitud"]{
   font-size: 11px;
 }
 
-.main{
-  position: relative;
-}
-
-.main::before{
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(900px 500px at 12% 8%, rgba(59,130,246,.12), transparent 60%),
-    radial-gradient(800px 520px at 90% 0%, rgba(251,191,36,.16), transparent 62%),
-    radial-gradient(900px 600px at 40% 90%, rgba(16,185,129,.08), transparent 62%),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1100' height='600' viewBox='0 0 1100 600'%3E%3Cg fill='none' stroke='%230f172a' stroke-opacity='0.06' stroke-width='1'%3E%3Cpath d='M60 90 130 60 210 90 190 170 100 160Z'/%3E%3Cpath d='M280 88 360 58 440 96 418 176 320 158Z'/%3E%3Cpath d='M520 86 600 58 680 100 650 184 560 164Z'/%3E%3Cpath d='M770 92 850 60 930 104 904 188 814 166Z'/%3E%3Cpath d='M140 280 220 248 300 292 272 376 184 358Z'/%3E%3Cpath d='M380 280 460 250 540 296 508 382 414 360Z'/%3E%3Cpath d='M640 278 718 248 800 292 770 380 676 360Z'/%3E%3Cpath d='M200 470 280 440 360 486 332 570 242 548Z'/%3E%3Cpath d='M470 470 550 438 632 488 604 568 514 548Z'/%3E%3Cpath d='M740 468 820 438 900 486 870 570 782 548Z'/%3E%3C/g%3E%3C/svg%3E");
-  background-size: auto, auto, auto, 1200px 720px;
-  background-position: center, center, center, 65% 10%;
-  background-repeat: no-repeat;
-  opacity: .85;
-}
 
 .form-grid{
   display: grid;
