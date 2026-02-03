@@ -25,7 +25,7 @@
   function formatDate(value) {
     if (!value) return "-";
     const raw = String(value);
-    // Handle "YYYY-MM-DD" as local date.
+    
     const normalized = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? `${raw}T00:00:00` : raw;
     const d = new Date(normalized);
     if (Number.isNaN(d.getTime())) return raw;
@@ -83,7 +83,7 @@
       const a = ra?.[key];
       const b = rb?.[key];
 
-      // Special-case date sorting.
+      
       if (key === "fecha") {
         const ad = a ? new Date(String(a)) : null;
         const bd = b ? new Date(String(b)) : null;
@@ -281,7 +281,7 @@
       const res = await fetch("/get-recibos");
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      // Default: show newest first if backend doesn't.
+      
       state.all = Array.isArray(data) ? data.slice().sort((a, b) => (b.id || 0) - (a.id || 0)) : [];
       renderKpis();
       renderFilterOptions();

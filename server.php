@@ -6,9 +6,9 @@ $uri = urldecode(
     parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? ''
 );
 
-// Emulate Apache's "mod_rewrite" behavior from the built-in PHP dev server.
-// Important: only short-circuit for *files* (not directories) so routes like
-// "/compras" can be handled by Laravel even if a "/compras" directory exists.
+
+
+
 if ($uri !== '/' && is_file($publicPath.$uri)) {
     return false;
 }

@@ -51,6 +51,20 @@
     return s ? `?${s}` : "";
   }
 
+  function getComprasToken() {
+    try {
+      return (localStorage.getItem("PGT_COMPRAS_TOKEN") || "").trim();
+    } catch {
+      return "";
+    }
+  }
+
+  function withComprasToken(headers) {
+    const token = getComprasToken();
+    if (!token) return headers || {};
+    return { ...(headers || {}), "X-Compras-Token": token };
+  }
+
   window.PGT = window.PGT || {};
   window.PGT.api = {
     API_BASE,
@@ -69,16 +83,19 @@
       requestJson(`/api/purchase-requests/${encodeURIComponent(id)}/status`, {
         method: "PATCH",
         body: payload,
+        headers: withComprasToken(),
       }),
     sendToSupervisor: (id, payload) =>
       requestJson(`/api/purchase-requests/${encodeURIComponent(id)}/send`, {
         method: "POST",
         body: payload || {},
+        headers: withComprasToken(),
       }),
     uploadAttachment: (id, formData) =>
       requestJson(`/api/purchase-requests/${encodeURIComponent(id)}/attachments`, {
         method: "POST",
         body: formData,
+        headers: withComprasToken(),
       }),
   };
 })();

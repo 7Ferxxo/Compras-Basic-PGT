@@ -73,7 +73,7 @@
             <div class="table-meta">
                 <div class="meta-left">
                     <span class="meta-pill" id="metaCount">-</span>
-                    <span class="meta-pill subtle" id="metaHint">Ordenado por # (desc)</span>
+                    <span class="meta-pill subtle" id="metaHint">Ordenado por 
                 </div>
                 <div class="meta-right" id="pagerTop"></div>
             </div>
@@ -82,7 +82,7 @@
                 <table id="recibos-table">
                     <thead>
                         <tr>
-                            <th data-sort="id">#</th>
+                            <th data-sort="id">
                             <th data-sort="cliente">Cliente</th>
                             <th data-sort="casillero">Casillero</th>
                             <th data-sort="email_cliente">Email</th>

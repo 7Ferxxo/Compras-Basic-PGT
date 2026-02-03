@@ -4,12 +4,12 @@ namespace App\Http\Controllers\Facturacion;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Facturacion\StoreReciboRequest;
+use App\Jobs\SendReceiptNotifications;
 use App\Models\Recibo;
 use App\Services\Compras\PurchaseRequestService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 
 class FacturaController extends Controller
 {
@@ -162,72 +162,21 @@ class FacturaController extends Controller
                     ]);
                 }
 
-                $webhookUrl = config('services.compras.webhook_url');
-                if ($webhookUrl) {
-                    try {
-                        $payload = [
-                            'origen' => 'FACTURADOR_LARAVEL',
-                            'id_recibo' => $recibo->id,
-                            'cliente' => $recibo->cliente,
-                            'casillero' => $recibo->casillero,
-                            'email_cliente' => $recibo->email_cliente,
-                            'tipo_servicio' => $tipoServicio,
-                            'link_producto' => $request->input('link_producto'),
-                            'descripcion_compra' => $recibo->concepto,
-                            'monto_pagado' => $recibo->monto,
-                            'subtotal' => $subtotal,
-                            'comision' => $itbms,
-                            'metodo_pago' => $recibo->metodo_pago,
-                            'fecha_pago' => now()->toDateTimeString(),
-                            'evidencia_pago_url' => asset('facturas_pdf/' . $nombreArchivo),
-                        ];
-
-                        $timeout = (int) config('services.compras.timeout_seconds', 5);
-                        $http = Http::timeout($timeout)->acceptJson();
-
-                        $token = config('services.compras.webhook_token');
-                        if ($token) {
-                            $http = $http->withHeaders(['X-Webhook-Token' => $token]);
-                        }
-
-                        $response = $http->post($webhookUrl, $payload);
-                        if (!$response->successful()) {
-                            Log::warning('Webhook a Compras respondió con error', [
-                                'status' => $response->status(),
-                                'body' => $response->body(),
-                                'id_recibo' => $recibo->id,
-                            ]);
-                        }
-                    } catch (\Exception $e) {
-                        Log::error('Error enviando webhook a Compras', [
-                            'error' => $e->getMessage(),
-                            'id_recibo' => $recibo->id,
-                        ]);
-                    }
-                } else {
-                                                                                                          
+                try {
+                    dispatch(new SendReceiptNotifications($recibo->id, [
+                        'tipo_servicio' => $tipoServicio,
+                        'link_producto' => $request->input('link_producto'),
+                    ]));
+                } catch (\Exception $e) {
+                    Log::error('Error encolando notificaciones de recibo', [
+                        'error' => $e->getMessage(),
+                        'id_recibo' => $recibo->id,
+                    ]);
                 }
             }
 
-            try {
-                $data = [
-                    'recibo' => $recibo,
-                    'subtotal' => $subtotal,
-                    'itbms' => $itbms,
-                    'logoUrl' => asset('imagenes/logo.png'),
-                ];
-
-                Mail::send('emails.recibo', $data, function ($message) use ($recibo, $rutaCompleta) {
-                    $message->to($recibo->email_cliente, $recibo->cliente)
-                            ->subject('Nuevo Recibo de Compra - PGT Logistics');
-
-                    $message->attach($rutaCompleta);
-                });
-            } catch (\Exception $e) {
-            }
-
             return response()->json([
-                'message'   => '¡Recibo generado y correo enviado!',
+                'message'   => 'Â¡Recibo generado y correo enviado!',
                 'id_recibo' => $recibo->id,
                 'pdf_url'   => asset('facturas_pdf/' . $nombreArchivo)
             ]);
@@ -290,7 +239,7 @@ class FacturaController extends Controller
                         ]);
                     }
                 } catch (\Exception $e) {
-                    Log::warning('Excepción consultando CRM por casillero', [
+                    Log::warning('ExcepciÃ³n consultando CRM por casillero', [
                         'error' => $e->getMessage(),
                         'casillero' => $casillero,
                     ]);

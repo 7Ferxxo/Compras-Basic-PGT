@@ -11,7 +11,7 @@ return new class extends Migration
     {
         $driver = DB::connection()->getDriverName();
 
-        // Laravel's schema builder doesn't expose LONGBLOB directly. Use raw SQL for MySQL/MariaDB.
+        
         if ($driver === 'mysql') {
             DB::statement("ALTER TABLE `recibos` ADD COLUMN `pdf_blob` LONGBLOB NULL AFTER `pdf_filename`");
             return;

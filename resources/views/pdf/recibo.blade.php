@@ -7,7 +7,7 @@
         body {
             font-family: Arial, sans-serif;
             font-size: 12px;
-            color: #333;
+            color: 
         }
         .container {
             width: 100%;
@@ -16,18 +16,18 @@
         .header-table {
             width: 100%;
             margin-bottom: 20px;
-            border-bottom: 2px solid #0a3a5a;
+            border-bottom: 2px solid 
         }
         .logo {
             width: 120px;
         }
         .info-box {
-            background-color: #f4f4f4;
+            background-color: 
             padding: 10px;
-            border-left: 5px solid #0a3a5a;
+            border-left: 5px solid 
         }
         h1 {
-            color: #0a3a5a;
+            color: 
             margin: 0;
             text-align: right;
         }
@@ -41,8 +41,8 @@
             margin-top: 20px;
         }
         .items-table th {
-            background-color: #0a3a5a;
-            color: #fff;
+            background-color: 
+            color: 
             padding: 8px;
             text-align: left;
         }
@@ -52,7 +52,7 @@
 
         .items-table td {
             padding: 10px;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid 
         }
 
         .totals-table {
@@ -66,17 +66,17 @@
             text-align: right;
         }
         .grand-total {
-            color: #0a3a5a;
+            color: 
             font-weight: bold;
             font-size: 14px;
-            border-top: 2px solid #0a3a5a;
+            border-top: 2px solid 
         }
         .footer {
             margin-top: 50px;
             text-align: center;
             font-size: 10px;
-            color: #777;
-            border-top: 1px solid #ddd;
+            color: 
+            border-top: 1px solid 
             padding-top: 10px;
         }
     </style>
