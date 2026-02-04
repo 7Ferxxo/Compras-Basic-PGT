@@ -36,11 +36,8 @@
     return (
       {
         pending: "Pendiente",
-        sent_to_supervisor: "Enviada al Supervisor",
+        sent_to_supervisor: "En proceso",
         completed: "Completada",
-        approved: "Aprobada",
-        rejected: "Rechazada",
-        cancelled: "Cancelada",
       }[status] || status || "Pendiente"
     );
   }
@@ -51,7 +48,7 @@
         created: "Creada",
         created_from_invoice: "Creada desde recibo",
         status_change: "Cambio de estado",
-        send_to_supervisor: "Enviada al Supervisor",
+        send_to_supervisor: "En proceso",
         attachment_added: "Adjunto agregado",
         payment_proof_attached: "Comprobante adjunto",
       }[action] || action || "-"
@@ -66,9 +63,7 @@
           ? "pending"
           : status === "completed"
             ? "done"
-            : status === "cancelled" || status === "rejected"
-              ? "cancelled"
-              : "draft";
+            : "draft";
     const text = label || statusLabel(status);
     return `<span class="pill ${cls}">${escapeHtml(text)}</span>`;
   }
@@ -157,7 +152,7 @@
 
     const sendBtn = $("#sendBtn");
     if (sendBtn) {
-      sendBtn.disabled = ["sent_to_supervisor", "completed", "cancelled", "rejected"].includes(r.status);
+      sendBtn.disabled = ["sent_to_supervisor", "completed"].includes(r.status);
     }
   }
 
@@ -212,7 +207,6 @@
           message = "No hay conexion a la base de datos. Verifica que el servidor este encendido.";
         }
       } catch {
-        // Keep original message if healthcheck fails.
       }
       $("#detailRoot").innerHTML = `<div class="hint">Error cargando detalle: ${escapeHtml(message)}</div>`;
     }

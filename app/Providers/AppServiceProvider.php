@@ -13,6 +13,9 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        
+        \Illuminate\Support\Facades\Event::listen(
+            \App\Events\PurchaseRequestCreated::class,
+            \App\Listeners\SendPurchaseRequestReceipt::class
+        );
     }
 }

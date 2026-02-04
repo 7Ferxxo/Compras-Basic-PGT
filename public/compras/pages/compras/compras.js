@@ -32,11 +32,8 @@
     return (
       {
         pending: "Pendiente",
-        sent_to_supervisor: "Enviada al Supervisor",
+        sent_to_supervisor: "En proceso",
         completed: "Completada",
-        approved: "Aprobada",
-        rejected: "Rechazada",
-        cancelled: "Cancelada",
       }[status] || status || "Pendiente"
     );
   }
@@ -49,9 +46,7 @@
           ? "pending"
           : status === "completed"
             ? "done"
-            : status === "cancelled" || status === "rejected"
-              ? "cancelled"
-              : "draft";
+            : "draft";
     const text = label || statusLabel(status);
     return `<span class="pill ${cls}">${escapeHtml(text)}</span>`;
   }
@@ -60,7 +55,6 @@
     if (status === "sent_to_supervisor") return "sent";
     if (status === "pending") return "pending";
     if (status === "completed") return "done";
-    if (status === "cancelled" || status === "rejected") return "cancelled";
     return "";
   }
 

@@ -12,11 +12,8 @@ class StatsController extends Controller
     {
         return match ($status) {
             'pending' => 'Pendiente',
-            'sent_to_supervisor' => 'Enviada al Supervisor',
+            'sent_to_supervisor' => 'En proceso',
             'completed' => 'Completada',
-            'approved' => 'Aprobada',
-            'rejected' => 'Rechazada',
-            'cancelled' => 'Cancelada',
             default => $status ?: 'Pendiente',
         };
     }

@@ -64,10 +64,14 @@ class PurchaseRequestService
         ];
     }
 
-    public function nextCode(): string
+    public function assignCode(PurchaseRequest $request): string
     {
-        $nextId = ((int) PurchaseRequest::query()->max('id')) + 1;
-        return 'BASIC-' . str_pad((string) $nextId, 3, '0', STR_PAD_LEFT);
+        $code = 'BASIC-' . str_pad((string) $request->id, 3, '0', STR_PAD_LEFT);
+        if ($request->code !== $code) {
+            $request->code = $code;
+            $request->save();
+        }
+        return $code;
     }
 
        
@@ -154,6 +158,14 @@ class PurchaseRequestService
             throw new \InvalidArgumentException('storeId derivado invalido');
         }
 
+        $existing = PurchaseRequest::query()
+            ->where('source_system', $sourceSystem)
+            ->where('source_reference', $receiptId)
+            ->first();
+        if ($existing) {
+            return $existing;
+        }
+
         $quotedTotal = $subtotal ?? $montoPagado ?? 0.0;
         $charges = $this->computeCharges($storeId, 1, $quotedTotal);
 
@@ -169,11 +181,11 @@ class PurchaseRequestService
             $meta ? implode(' | ', $meta) : null,
         ]))) ?: null;
 
-        $code = $this->nextCode();
         $status = 'pending';
+        $tempCode = 'PENDING-' . Str::lower(Str::random(10));
 
         $request = PurchaseRequest::query()->create([
-            'code' => $code,
+            'code' => $tempCode,
             'client_name' => $clientName,
             'client_code' => $clientCode,
             'contact_channel' => 'Facturador',
@@ -195,6 +207,8 @@ class PurchaseRequestService
             'source_system' => $sourceSystem,
             'source_reference' => $receiptId,
         ]);
+
+        $this->assignCode($request);
 
         RequestLog::query()->create([
             'request_id' => $request->id,

@@ -17,6 +17,6 @@ Route::get('/dashboard', function () {
 
 Route::redirect('/dashboard.html', '/dashboard');
 
-Route::post('/crear-factura', [FacturaController::class, 'guardar']);
-Route::get('/get-recibos', [FacturaController::class, 'obtenerRecibos']);
-Route::get('/recibos/{id}/pdf', [FacturaController::class, 'verPdf']);
+Route::post('/crear-factura', [FacturaController::class, 'guardar'])->middleware('throttle:20,1');
+Route::get('/get-recibos', [FacturaController::class, 'obtenerRecibos'])->middleware('facturacion.token');
+Route::get('/recibos/{id}/pdf', [FacturaController::class, 'verPdf'])->middleware('facturacion.token');

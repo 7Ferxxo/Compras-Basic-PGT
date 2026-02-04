@@ -42,6 +42,12 @@ return [
         'admin_token' => env('COMPRAS_ADMIN_TOKEN'),
     ],
 
+    'facturacion' => [
+        'admin_token' => env('FACTURACION_ADMIN_TOKEN'),
+        'webhook_token' => env('FACTURADOR_WEBHOOK_TOKEN'),
+        'timeout_seconds' => env('FACTURADOR_WEBHOOK_TIMEOUT', 5),
+    ],
+
     'crm' => [
                                                                
                                                                                             

@@ -32,6 +32,9 @@ class PurchaseRequest extends Model
         'sent_at',
         'source_system',
         'source_reference',
+        'receipt_sent_at',
+        'receipt_send_error',
+        'receipt_send_attempts',
     ];
 
     protected $casts = [
@@ -40,6 +43,8 @@ class PurchaseRequest extends Model
         'american_card_charge' => 'decimal:2',
         'item_quantity' => 'int',
         'sent_at' => 'datetime',
+        'receipt_sent_at' => 'datetime',
+        'receipt_send_attempts' => 'int',
     ];
 
     public function store(): BelongsTo

@@ -4,11 +4,14 @@ namespace App\Http\Controllers\Compras;
 
 use App\Http\Controllers\Controller;
 use App\Models\Store;
+use App\Services\Compras\PurchaseRequestService;
 
 class StoresController extends Controller
 {
-    public function index()
+    public function index(PurchaseRequestService $service)
     {
+        $service->ensureDefaultStoresExist();
+
         $items = Store::query()
             ->with('rules')
             ->orderBy('id')

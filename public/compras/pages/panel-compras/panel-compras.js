@@ -72,9 +72,7 @@
           ? "pending"
           : status === "completed"
             ? "done"
-            : status === "cancelled" || status === "rejected"
-              ? "cancelled"
-              : "draft";
+            : "draft";
     return `<span class="pill ${cls}">${escapeHtml(label || status)}</span>`;
   }
 

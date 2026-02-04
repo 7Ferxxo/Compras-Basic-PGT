@@ -16,11 +16,8 @@
     return (
       {
         pending: "Pendiente",
-        sent_to_supervisor: "Enviada al Supervisor",
+        sent_to_supervisor: "En proceso",
         completed: "Completada",
-        approved: "Aprobada",
-        rejected: "Rechazada",
-        cancelled: "Cancelada",
       }[status] || status || "Pendiente"
     );
   }
@@ -33,9 +30,7 @@
           ? "pending"
           : status === "completed"
             ? "done"
-            : status === "cancelled" || status === "rejected"
-              ? "cancelled"
-              : "draft";
+            : "draft";
     const text = label || statusLabel(status);
     return `<span class="pill ${cls}">${escapeHtml(text)}</span>`;
   }
@@ -97,11 +92,8 @@
                       <select class=\"statusSelect\" data-id=\"${r.id}\" data-current=\"${r.status}\" data-allow-completed=\"0\" style=\"padding:10px 10px;border-radius:999px;\">
                         ${[
                           { value: "pending", label: "Pendiente" },
-                          { value: "sent_to_supervisor", label: "Enviada al Supervisor" },
+                          { value: "sent_to_supervisor", label: "En proceso" },
                           { value: "completed", label: "Completada" },
-                          { value: "approved", label: "Aprobada" },
-                          { value: "rejected", label: "Rechazada" },
-                          { value: "cancelled", label: "Cancelada" },
                         ]
                           .map(
                             (s) =>
@@ -109,12 +101,6 @@
                           )
                           .join("")}
                       </select>
-                      <a class=\"btn ${r.payment_proof_url ? "" : "disabled"}\"
-                         ${r.payment_proof_url ? `href=\"${r.payment_proof_url}\"` : ""}
-                         ${r.payment_proof_url ? "target=\"_blank\" rel=\"noreferrer\"" : ""}
-                         style=\"${r.payment_proof_url ? "" : "pointer-events:none;opacity:.55;"}\">
-                        Comprobante
-                      </a>
                     </div>
                   </td>
                 </tr>

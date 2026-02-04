@@ -5,25 +5,24 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 
-class EnsureComprasToken
+class EnsureFacturacionToken
 {
     public function handle(Request $request, Closure $next)
     {
-        if (app()->environment('local')) {
-            return $next($request);
-        }
-
-        $expected = trim((string) config('services.compras.admin_token', ''));
+        $expected = trim((string) config('services.facturacion.admin_token', ''));
 
         if ($expected === '') {
+            if (app()->environment('local')) {
+                return $next($request);
+            }
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'errors' => ['message' => ['Token de compras no configurado']],
+                'errors' => ['message' => ['Token de facturacion no configurado']],
             ], 503);
         }
 
-        $got = (string) $request->header('x-compras-token', '');
+        $got = (string) $request->header('x-facturacion-token', '');
         if ($got !== '' && hash_equals($expected, $got)) {
             return $next($request);
         }

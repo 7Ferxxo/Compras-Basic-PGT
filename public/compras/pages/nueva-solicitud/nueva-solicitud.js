@@ -379,9 +379,17 @@
       onSelect: handleStoreSelect,
     });
 
-    try {
-      const data = await window.PGT.api.listStores();
-      const items = data.items || [];
+    const fallbackStores = [
+      { id: 1, name: "WALMART" },
+      { id: 2, name: "AMAZON" },
+      { id: 3, name: "TEMU" },
+      { id: 4, name: "SHEIN" },
+      { id: 5, name: "EBAY" },
+      { id: 6, name: "ALIEXPRESS" },
+      { id: 7, name: "OTROS" },
+    ];
+
+    function renderStores(items) {
       const storeOptions = document.getElementById("rStoreOptions");
       if (storeOptions) {
         storeOptions.innerHTML = items
@@ -390,13 +398,29 @@
             return `<button type="button" class="select-option" data-value="${s.id}">${escapeHtml(name)}</button>`;
           })
           .join("");
-        if (items.length && storeSelect) {
-          storeSelect.setActive(String(items[0].id), String(items[0].name || "").toUpperCase());
-          handleStoreSelect(String(items[0].id));
+      }
+
+      if (items.length) {
+        const first = items[0];
+        const firstName = String(first.name || "").toUpperCase();
+        if (storeSelect) {
+          storeSelect.setActive(String(first.id), firstName);
+        } else {
+          const input = document.getElementById("rStoreId");
+          const label = document.getElementById("rStoreLabel");
+          if (input) input.value = String(first.id);
+          if (label) label.textContent = firstName || "Selecciona...";
+          handleStoreSelect(String(first.id));
         }
       }
+    }
+
+    try {
+      const data = await window.PGT.api.listStores();
+      const items = (data.items || []).filter((s) => s && s.id);
+      renderStores(items.length ? items : fallbackStores);
     } catch (e) {
-      showMessage("No se pudo cargar tiendas. Intenta recargar.");
+      renderStores(fallbackStores);
     }
 
     document.querySelectorAll("#rPayGrid .pay-option").forEach((el) => {

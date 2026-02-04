@@ -8,10 +8,12 @@ use App\Models\RequestAttachment;
 use App\Models\RequestLog;
 use App\Models\Store;
 use App\Services\Compras\PurchaseRequestService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -28,15 +30,12 @@ class PurchaseRequestsController extends Controller
             'pending',
             'sent_to_supervisor',
             'completed',
-            'approved',
-            'rejected',
-            'cancelled',
             'Borrador',
             'Pendiente comprobante',
             'Enviada al Supervisor',
+            'En proceso',
             'Compra realizada',
             'Completada',
-            'Cancelada',
         ];
     }
 
@@ -44,9 +43,10 @@ class PurchaseRequestsController extends Controller
     {
         return match ($status) {
             'Borrador', 'Pendiente comprobante', 'Pendiente' => 'pending',
-            'Enviada al Supervisor' => 'sent_to_supervisor',
+            'Enviada al Supervisor', 'En proceso' => 'sent_to_supervisor',
             'Compra realizada', 'Completada' => 'completed',
-            'Cancelada' => 'cancelled',
+            'approved', 'Aprobada' => 'completed',
+            'rejected', 'Rechazada', 'cancelled', 'Cancelada' => 'pending',
             default => $status ?: 'pending',
         };
     }
@@ -55,11 +55,8 @@ class PurchaseRequestsController extends Controller
     {
         return match ($status) {
             'pending' => 'Pendiente',
-            'sent_to_supervisor' => 'Enviada al Supervisor',
+            'sent_to_supervisor' => 'En proceso',
             'completed' => 'Completada',
-            'approved' => 'Aprobada',
-            'rejected' => 'Rechazada',
-            'cancelled' => 'Cancelada',
             default => $status ?: 'Pendiente',
         };
     }
@@ -260,6 +257,12 @@ class PurchaseRequestsController extends Controller
             'hasAccountPassword' => $hasAccountPassword,
             'attachments' => $attachments,
             'logs' => $logs,
+            'receipt_status' => [
+                'sent' => !is_null($row->receipt_sent_at),
+                'sent_at' => $row->receipt_sent_at,
+                'error' => $row->receipt_send_error,
+                'attempts' => $row->receipt_send_attempts ?? 0,
+            ],
         ]);
     }
 
@@ -326,7 +329,7 @@ class PurchaseRequestsController extends Controller
 
         $paymentProof = $request->file('paymentProof');
         $status = 'pending';
-        $code = $this->service->nextCode();
+        $tempCode = 'PENDING-' . \Illuminate\Support\Str::lower(\Illuminate\Support\Str::random(10));
 
         $passwordEnc = null;
         $accountPassword = trim((string) ($validated['accountPassword'] ?? ''));
@@ -336,7 +339,7 @@ class PurchaseRequestsController extends Controller
 
         $itemLink = trim((string) ($validated['itemLink'] ?? ''));
         $purchaseRequest = PurchaseRequest::query()->create([
-            'code' => $code,
+            'code' => $tempCode,
             'client_name' => $validated['clientName'],
             'client_code' => $validated['clientCode'],
             'contact_channel' => trim((string) ($validated['contactChannel'] ?? '')) ?: 'WEB',
@@ -355,6 +358,8 @@ class PurchaseRequestsController extends Controller
             'status' => $status,
             'source_system' => 'WEB',
         ]);
+
+        $code = $this->service->assignCode($purchaseRequest);
 
         RequestLog::query()->create([
             'request_id' => $purchaseRequest->id,
@@ -385,11 +390,24 @@ class PurchaseRequestsController extends Controller
             ]);
         }
 
+
+        $storeName = $purchaseRequest->store?->name ?? 'OTROS';
+        if ($purchaseRequest->store_id === 7 && $purchaseRequest->store_custom_name) {
+            $storeName = $storeName . ' - ' . $purchaseRequest->store_custom_name;
+        }
+
+        event(new \App\Events\PurchaseRequestCreated(
+            $purchaseRequest,
+            $charges,
+            $storeName
+        ));
+
         return $this->okResponse([
             'id' => $purchaseRequest->id,
             'code' => $code,
             'status' => $status,
             'status_label' => $this->statusLabel($status),
+            'receipt_queued' => !empty($purchaseRequest->account_email),
         ], 201);
     }
 
@@ -431,7 +449,7 @@ class PurchaseRequestsController extends Controller
             return $this->errorResponse('Solo se puede enviar al supervisor desde pendiente', 400);
         }
         if ($fromStatus !== $nextStatus && $nextStatus === 'completed' && $fromStatus !== 'sent_to_supervisor') {
-            return $this->errorResponse('Solo se puede completar despues de Enviada al Supervisor', 400);
+            return $this->errorResponse('Solo se puede completar despues de En proceso', 400);
         }
         $purchaseRequest->status = $nextStatus;
         $purchaseRequest->save();
@@ -550,18 +568,10 @@ class PurchaseRequestsController extends Controller
 
     public function createFromInvoiceWebhook(Request $request)
     {
-        $expectedToken = trim((string) env('FACTURADOR_WEBHOOK_TOKEN', ''));
+        $expectedToken = trim((string) config('services.facturacion.webhook_token', ''));
         if ($expectedToken !== '') {
             $got = (string) ($request->header('x-webhook-token') ?? '');
-            if ($got === '') {
-                $auth = (string) ($request->header('authorization') ?? '');
-                if (preg_match('/^Bearer\\s+(.+)$/i', $auth, $m)) {
-                    $got = (string) ($m[1] ?? '');
-                } else {
-                    $got = $auth;
-                }
-            }
-            if ($got === '' || $got !== $expectedToken) {
+            if ($got === '' || !hash_equals($expectedToken, $got)) {
                 return $this->errorResponse('Token de webhook invalido', 401);
             }
         }
@@ -676,7 +686,49 @@ class PurchaseRequestsController extends Controller
             'added' => $created,
         ]);
     }
+
+    public function resendReceipt(Request $request, string $id)
+    {
+        $purchaseRequest = PurchaseRequest::query()->find((int) $id);
+        if (!$purchaseRequest) {
+            return $this->errorResponse('Solicitud no encontrada', 404);
+        }
+
+        $emailTo = trim((string) $purchaseRequest->account_email);
+        if ($emailTo === '') {
+            return $this->errorResponse('La solicitud no tiene email asociado', 400);
+        }
+
+        $charges = $this->service->computeCharges(
+            $purchaseRequest->store_id,
+            $purchaseRequest->item_quantity,
+            (float) $purchaseRequest->quoted_total
+        );
+
+        $storeName = $purchaseRequest->store?->name ?? 'OTROS';
+        if ($purchaseRequest->store_id === 7 && $purchaseRequest->store_custom_name) {
+            $storeName = $storeName . ' - ' . $purchaseRequest->store_custom_name;
+        }
+
+        \App\Jobs\SendPurchaseRequestNotification::dispatch(
+            $purchaseRequest->id,
+            $charges,
+            $storeName
+        );
+
+        RequestLog::query()->create([
+            'request_id' => $purchaseRequest->id,
+            'action' => 'receipt_resend_requested',
+            'from_status' => $this->normalizeStatus($purchaseRequest->status),
+            'to_status' => $this->normalizeStatus($purchaseRequest->status),
+            'note' => 'Reenvío de comprobante solicitado manualmente',
+            'actor_name' => auth()->user()?->name ?? 'system',
+        ]);
+
+        return $this->okResponse([
+            'ok' => true,
+            'message' => 'Comprobante en cola para reenvío',
+            'email' => $emailTo,
+        ]);
+    }
 }
-
-
-
