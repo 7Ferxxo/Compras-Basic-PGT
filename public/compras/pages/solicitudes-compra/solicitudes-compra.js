@@ -89,11 +89,10 @@
                   <td data-label=\"Acciones\">
                     <div class=\"actions-row\">
                       <a class=\"btn\" href=\"../detalle-solicitud/detalle-solicitud.html?id=${encodeURIComponent(r.id)}\">Ver</a>
-                      <select class=\"statusSelect\" data-id=\"${r.id}\" data-current=\"${r.status}\" data-allow-completed=\"0\" style=\"padding:10px 10px;border-radius:999px;\">
+                      <select class=\"statusSelect\" data-id=\"${r.id}\" data-current=\"${r.status}\" style=\"padding:10px 10px;border-radius:999px;\">
                         ${[
                           { value: "pending", label: "Pendiente" },
                           { value: "sent_to_supervisor", label: "En proceso" },
-                          { value: "completed", label: "Completada" },
                         ]
                           .map(
                             (s) =>
@@ -117,18 +116,6 @@
         const prev = sel.dataset.current || "pending";
         const next = sel.value;
         if (next === prev) return;
-
-        if (next === "completed") {
-          const code = prompt("Codigo para marcar como Completada:", "");
-          if (code !== "2806") {
-            alert("Codigo incorrecto.");
-            sel.value = prev;
-            return;
-          }
-          sel.dataset.allowCompleted = "1";
-        } else {
-          sel.dataset.allowCompleted = "0";
-        }
 
         const note = prompt("Nota (opcional) para registro:", "") || "";
         try {
