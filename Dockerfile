@@ -21,7 +21,7 @@ RUN npm run build
 FROM php:8.2-apache
 WORKDIR /var/www/html
 
-RUN a2dismod mpm_event \
+RUN a2dismod mpm_event mpm_worker \
     && a2enmod mpm_prefork \
     && a2enmod rewrite \
     && docker-php-ext-install pdo pdo_mysql \
