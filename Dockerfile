@@ -1,8 +1,11 @@
 # syntax=docker/dockerfile:1
 
-FROM php:8.2-cli AS composer
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+FROM composer:2 AS composer
 WORKDIR /app
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git unzip libzip-dev \
+    && docker-php-ext-install zip \
+    && rm -rf /var/lib/apt/lists/*
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
 
