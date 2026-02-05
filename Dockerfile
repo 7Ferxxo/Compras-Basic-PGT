@@ -2,10 +2,8 @@
 
 FROM composer:2 AS composer
 WORKDIR /app
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends git unzip libzip-dev \
-    && docker-php-ext-install zip \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache git unzip libzip-dev zlib-dev $PHPIZE_DEPS \
+    && docker-php-ext-install zip
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
 
