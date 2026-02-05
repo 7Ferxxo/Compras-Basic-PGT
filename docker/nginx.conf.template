@@ -2,6 +2,9 @@ server {
     listen ${PORT};
     server_name _;
 
+    access_log /dev/stdout;
+    error_log /dev/stderr info;
+
     root /var/www/html/public;
     index index.php index.html;
 
