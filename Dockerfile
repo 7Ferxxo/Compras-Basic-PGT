@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1
 
-FROM composer:2 AS composer
+FROM php:8.2-cli AS composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 WORKDIR /app
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
