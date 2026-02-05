@@ -1,9 +1,10 @@
 # syntax=docker/dockerfile:1
 
-FROM composer:2 AS composer
+FROM php:8.2-cli-alpine AS composer
 WORKDIR /app
-RUN apk add --no-cache git unzip libzip-dev zlib-dev $PHPIZE_DEPS \
-    && docker-php-ext-install zip
+RUN apk add --no-cache git unzip libzip-dev zlib-dev $PHPIZE_DEPS curl \
+    && docker-php-ext-install zip \
+    && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
 
