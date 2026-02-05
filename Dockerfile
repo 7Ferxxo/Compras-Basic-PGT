@@ -2,11 +2,12 @@
 
 FROM php:8.2-cli-alpine AS composer
 WORKDIR /app
+ENV COMPOSER_ALLOW_SUPERUSER=1
 RUN apk add --no-cache git unzip libzip-dev zlib-dev $PHPIZE_DEPS curl \
     && docker-php-ext-install zip \
     && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 COPY composer.json composer.lock ./
-RUN composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+RUN composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader --no-scripts
 
 FROM node:22-alpine AS assets
 WORKDIR /app
