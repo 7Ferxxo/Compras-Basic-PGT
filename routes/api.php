@@ -1,29 +1,14 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Facturacion\FacturaController;
+use App\Http\Controllers\HealthController;
 use App\Http\Controllers\Compras\PurchaseRequestsController;
 use App\Http\Controllers\Compras\StatsController;
 use App\Http\Controllers\Compras\StoresController;
 
 Route::middleware('throttle:60,1')->group(function () {
-    Route::get('/health', function () {
-        try {
-            DB::connection()->getPdo();
-            return response()->json([
-                'ok' => true,
-                'service' => 'api',
-                'time' => now()->toISOString(),
-            ]);
-        } catch (\Throwable $e) {
-            return response()->json([
-                'ok' => false,
-                'code' => 'db_unreachable',
-                'message' => 'No hay conexion a la base de datos',
-            ], 503);
-        }
-    });
+    Route::get('/health', HealthController::class);
 
     Route::get('/cliente/{casillero}', [FacturaController::class, 'buscarCliente'])->middleware('throttle:30,1');
     Route::get('/stores', [StoresController::class, 'index']);

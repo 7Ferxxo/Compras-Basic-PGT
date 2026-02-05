@@ -7,13 +7,9 @@ Route::redirect('/', '/compras');
 
 Route::redirect('/compras', '/compras/pages/panel-compras/panel-compras.html');
 
-Route::get('/facturador', function () {
-    return view('inicio');
-})->name('facturador');
+Route::view('/facturador', 'inicio')->name('facturador');
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->name('dashboard');
+Route::view('/dashboard', 'dashboard')->name('dashboard');
 
 Route::redirect('/dashboard.html', '/dashboard');
 
