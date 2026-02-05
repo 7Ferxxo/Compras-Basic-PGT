@@ -21,7 +21,7 @@ RUN npm run build
 FROM php:8.2-fpm-alpine
 WORKDIR /var/www/html
 
-RUN apk add --no-cache nginx supervisor \
+RUN apk add --no-cache nginx supervisor gettext \
     && docker-php-ext-install pdo pdo_mysql \
     && mkdir -p /run/nginx
 
@@ -29,7 +29,7 @@ COPY . /var/www/html
 COPY --from=composer /app/vendor /var/www/html/vendor
 COPY --from=assets /app/public/build /var/www/html/public/build
 
-COPY docker/nginx.conf /etc/nginx/http.d/default.conf
+COPY docker/nginx.conf.template /etc/nginx/http.d/default.conf.template
 COPY docker/supervisord.conf /etc/supervisord.conf
 
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
