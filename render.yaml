@@ -1,0 +1,103 @@
+services:
+  - type: web
+    name: compras-basic-pgt
+    runtime: docker
+    plan: starter
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_KEY
+        sync: false
+      - key: APP_URL
+        sync: false
+      - key: DB_CONNECTION
+        value: mysql
+      - key: DB_HOST
+        fromService:
+          type: pserv
+          name: compras-basic-pgt-mysql
+          property: host
+      - key: DB_PORT
+        fromService:
+          type: pserv
+          name: compras-basic-pgt-mysql
+          property: port
+      - key: DB_DATABASE
+        fromService:
+          type: pserv
+          name: compras-basic-pgt-mysql
+          property: envVar
+          envVarKey: MYSQL_DATABASE
+      - key: DB_USERNAME
+        fromService:
+          type: pserv
+          name: compras-basic-pgt-mysql
+          property: envVar
+          envVarKey: MYSQL_USER
+      - key: DB_PASSWORD
+        fromService:
+          type: pserv
+          name: compras-basic-pgt-mysql
+          property: envVar
+          envVarKey: MYSQL_PASSWORD
+      - key: SESSION_DRIVER
+        value: file
+      - key: CACHE_STORE
+        value: file
+      - key: QUEUE_CONNECTION
+        value: sync
+      - key: MAIL_MAILER
+        value: smtp
+      - key: MAIL_HOST
+        value: smtp.gmail.com
+      - key: MAIL_PORT
+        value: "587"
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: MAIL_ENCRYPTION
+        value: tls
+      - key: MAIL_FROM_ADDRESS
+        sync: false
+      - key: MAIL_FROM_NAME
+        value: PGT
+      - key: CRM_LOOKUP_URL
+        value: ""
+      - key: CRM_TOKEN
+        value: ""
+      - key: CRM_TIMEOUT
+        value: "5"
+      - key: COMPRAS_ADMIN_TOKEN
+        sync: false
+    disk:
+      name: app-storage
+      mountPath: /var/www/html/storage
+      sizeGB: 5
+
+  - type: pserv
+    name: compras-basic-pgt-mysql
+    runtime: image
+    plan: starter
+    region: oregon
+    image:
+      url: docker.io/mysql:8.0
+    envVars:
+      - key: MYSQL_DATABASE
+        value: compras
+      - key: MYSQL_USER
+        value: compras_user
+      - key: MYSQL_PASSWORD
+        sync: false
+      - key: MYSQL_ROOT_PASSWORD
+        sync: false
+    disk:
+      name: mysql-data
+      mountPath: /var/lib/mysql
+      sizeGB: 10

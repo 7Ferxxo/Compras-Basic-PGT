@@ -1,4 +1,6 @@
 .git
+.git-new
+.git-worktree
 .gitignore
 .env
 .env.*

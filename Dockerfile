@@ -31,12 +31,16 @@ COPY --from=assets /app/public/build /var/www/html/public/build
 
 COPY docker/nginx.conf.template /etc/nginx/http.d/default.conf.template
 COPY docker/supervisord.conf /etc/supervisord.conf
+COPY docker/start.sh /usr/local/bin/start-app
 
 RUN mkdir -p /var/www/html/storage/framework/cache \
     /var/www/html/storage/framework/sessions \
     /var/www/html/storage/framework/views \
+    /var/www/html/storage/app/public \
     /var/www/html/bootstrap/cache \
-    && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+    /var/www/html/public/facturas_pdf \
+    && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/public/facturas_pdf \
+    && chmod +x /usr/local/bin/start-app
 
 EXPOSE 80
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
+CMD ["/usr/local/bin/start-app"]

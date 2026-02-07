@@ -26,3 +26,5 @@ Homestead.yaml
 Thumbs.db
 *.msi
 pgt_dev
+.git-new/
+.git-worktree/
