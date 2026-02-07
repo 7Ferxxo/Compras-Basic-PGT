@@ -24,27 +24,15 @@ services:
           name: compras-basic-pgt-mysql
           property: host
       - key: DB_PORT
-        fromService:
-          type: pserv
-          name: compras-basic-pgt-mysql
-          property: port
+        value: "3306"
       - key: DB_DATABASE
-        fromService:
-          type: pserv
-          name: compras-basic-pgt-mysql
-          property: envVar
-          envVarKey: MYSQL_DATABASE
+        value: compras
       - key: DB_USERNAME
-        fromService:
-          type: pserv
-          name: compras-basic-pgt-mysql
-          property: envVar
-          envVarKey: MYSQL_USER
+        value: compras_user
       - key: DB_PASSWORD
         fromService:
           type: pserv
           name: compras-basic-pgt-mysql
-          property: envVar
           envVarKey: MYSQL_PASSWORD
       - key: SESSION_DRIVER
         value: file
