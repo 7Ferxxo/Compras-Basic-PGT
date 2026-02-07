@@ -1,6 +1,32 @@
 (function () {
-  const API_BASE =
-    location.protocol === "http:" || location.protocol === "https:" ? "" : "http://localhost:8000";
+  function isWeb() {
+    return location.protocol === "http:" || location.protocol === "https:";
+  }
+
+  function normalizeBase(base) {
+    const value = String(base || "").trim();
+    if (!value) return "";
+    return value.endsWith("/") ? value.slice(0, -1) : value;
+  }
+
+  function readMetaBase() {
+    const meta = document.querySelector('meta[name="pgt-api-base"]');
+    return meta ? meta.getAttribute("content") || "" : "";
+  }
+
+  function resolveApiBase() {
+    const configured =
+      window.PGT?.config?.apiBase ||
+      window.PGT_API_BASE ||
+      readMetaBase();
+
+    const normalized = normalizeBase(configured);
+    if (normalized) return normalized;
+
+    return isWeb() ? "" : "http://localhost:8000";
+  }
+
+  const API_BASE = resolveApiBase();
 
   async function requestJson(path, { method = "GET", body, headers } = {}) {
     const res = await fetch(API_BASE + path, {

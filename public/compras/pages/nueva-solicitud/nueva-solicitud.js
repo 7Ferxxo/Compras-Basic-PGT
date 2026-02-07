@@ -456,6 +456,7 @@
 
       if (abortController) abortController.abort();
       abortController = new AbortController();
+      const apiBase = window.PGT?.api?.API_BASE || "";
 
       const snapshotCliente = document.getElementById("rCliente")?.value ?? "";
       const snapshotEmail = document.getElementById("rEmail")?.value ?? "";
@@ -463,7 +464,9 @@
       const statusEl = document.getElementById("rCasilleroStatus");
       if (statusEl) statusEl.textContent = "Buscando cliente...";
       try {
-        const res = await fetch(`/api/cliente/${encodeURIComponent(cas)}`, { signal: abortController.signal });
+        const res = await fetch(`${apiBase}/api/cliente/${encodeURIComponent(cas)}`, {
+          signal: abortController.signal,
+        });
         if (res.ok) {
           const data = await res.json();
           if (document.getElementById("rCliente")?.value === snapshotCliente) {
