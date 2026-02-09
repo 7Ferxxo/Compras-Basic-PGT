@@ -44,11 +44,17 @@
 
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      const msg =
+      let msg =
         data?.errors?.message?.[0] ||
         data?.message ||
         data?.error ||
-        `HTTP ${res.status}`;
+        "";
+      if (!msg && data?.errors && typeof data.errors === "object") {
+        const firstKey = Object.keys(data.errors)[0];
+        const firstVal = data.errors[firstKey];
+        if (Array.isArray(firstVal) && firstVal.length) msg = firstVal[0];
+      }
+      if (!msg) msg = `HTTP ${res.status}`;
       const err = new Error(msg);
       err.status = res.status;
       throw err;

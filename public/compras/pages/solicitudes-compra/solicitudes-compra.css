@@ -1,5 +1,5 @@
 @import url("../../shared/main.css");
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap");
 
 body[data-page="solicitudes-compra"]{
   --page-ink: #0b1221;
@@ -8,7 +8,7 @@ body[data-page="solicitudes-compra"]{
   --page-accent-soft: rgba(11,74,162,.12);
   --page-surface: #ffffff;
   --page-border: rgba(15, 23, 42, .10);
-  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-family: "Roboto", "Segoe UI", sans-serif;
   color: var(--page-ink);
   background:
     radial-gradient(1200px 500px at 10% -10%, rgba(11,74,162,.12), transparent 55%),
@@ -21,7 +21,7 @@ body[data-page="solicitudes-compra"] .main{
 }
 
 body[data-page="solicitudes-compra"] .title h1{
-  font-family: "Space Grotesk", "IBM Plex Sans", sans-serif;
+  font-family: "Roboto", "Segoe UI", sans-serif;
   font-size: 44px;
   letter-spacing: -1px;
 }

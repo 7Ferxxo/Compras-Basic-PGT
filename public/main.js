@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let lookupTimer = null;
     let lastLookupCasillero = '';
+    let lastLookupEmail = '';
     let abortController = null;
 
     const setCasilleroStatus = (text, kind) => {
@@ -81,11 +82,60 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    const lookupClienteByEmail = async () => {
+        const email = (emailInput?.value || '').trim().toLowerCase();
+        if (!email) {
+            lastLookupEmail = '';
+            return;
+        }
+        if (email === lastLookupEmail) return;
+        lastLookupEmail = email;
+
+        if (abortController) abortController.abort();
+        abortController = new AbortController();
+
+        const snapshotCliente = clienteInput?.value ?? '';
+        const snapshotCasillero = casilleroInput?.value ?? '';
+
+        setCasilleroStatus('Buscando cliente por email…', '');
+
+        try {
+            const response = await fetch(`/api/cliente-email/${encodeURIComponent(email)}`, {
+                signal: abortController.signal,
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+
+                if (clienteInput && clienteInput.value === snapshotCliente) clienteInput.value = data.cliente ?? '';
+                if (emailInput && !emailInput.value) emailInput.value = data.email_cliente ?? '';
+                if (casilleroInput && casilleroInput.value === snapshotCasillero) {
+                    casilleroInput.value = data.casillero ?? '';
+                }
+
+                setCasilleroStatus('Cliente encontrado por email.', 'success');
+                return;
+            }
+
+            if (response.status === 404) {
+                setCasilleroStatus('Email no encontrado: completa nombre y casillero.', 'warning');
+                return;
+            }
+
+            setCasilleroStatus('No se pudo consultar el email. Completa manualmente.', 'error');
+        } catch (error) {
+            if (error?.name === 'AbortError') return;
+            console.error('Error al buscar cliente por email:', error);
+            setCasilleroStatus('Error consultando el email. Completa manualmente.', 'error');
+        }
+    };
+
     casilleroInput?.addEventListener('input', () => {
         if (lookupTimer) clearTimeout(lookupTimer);
         lookupTimer = setTimeout(lookupClienteByCasillero, 400);
     });
     casilleroInput?.addEventListener('blur', lookupClienteByCasillero);
+    emailInput?.addEventListener('blur', lookupClienteByEmail);
 
     if (fechaInput && !fechaInput.value) {
         const hoy = new Date();
@@ -120,10 +170,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     precioInput.addEventListener('input', actualizarTotales);
     metodoPagoInput.addEventListener('change', actualizarTotales);
-
     const manejarEnvioFactura = (evento) => {
         evento.preventDefault();
         const botonEnviar = facturaForm.querySelector('.btn-submit');
+        let statusEl = document.getElementById('factura-status');
+        if (!statusEl) {
+            statusEl = document.createElement('div');
+            statusEl.id = 'factura-status';
+            statusEl.style.marginTop = '10px';
+            statusEl.style.fontSize = '12px';
+            statusEl.style.color = '#6b7280';
+            botonEnviar.insertAdjacentElement('afterend', statusEl);
+        }
         const precio = parseFloat(precioInput.value);
         const descripcion = document.getElementById('item-descripcion').value.trim();
         const tipoServicio = (tipoServicioInput?.value || '').toUpperCase() || 'OTRO';
@@ -136,6 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         botonEnviar.disabled = true;
         botonEnviar.textContent = 'Enviando...';
+        statusEl.textContent = 'Creando recibo...';
 
         const comision = parseFloat(itbmsElem.textContent.replace('B/.', ''));
         const total = parseFloat(totalElem.textContent.replace('B/.', ''));
@@ -158,8 +217,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }]
         };
 
-        console.log('Enviando al backend:', JSON.stringify(datosRecibo, null, 2));
-        
         fetch('/crear-factura', {
             method: 'POST',
             headers: {
@@ -173,6 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
             facturaForm.reset();
             actualizarTotales();
             fechaInput.value = new Date().toISOString().split('T')[0];
+            statusEl.textContent = '';
 
             
             const q = encodeURIComponent(datosRecibo.casillero || '');
@@ -181,6 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .catch((error) => {
             console.error('Error:', error);
             alert('Hubo un error al enviar el recibo.');
+            statusEl.textContent = '';
         })
         .finally(() => {
             botonEnviar.disabled = false;
@@ -190,3 +249,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
     facturaForm.addEventListener('submit', manejarEnvioFactura);
 });
+

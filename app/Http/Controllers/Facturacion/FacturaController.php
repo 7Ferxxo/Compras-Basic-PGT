@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Facturacion\StoreReciboRequest;
 use App\Jobs\SendReceiptNotifications;
 use App\Models\Recibo;
+use App\Models\PurchaseRequest;
 use App\Services\Compras\PurchaseRequestService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Http;
@@ -163,12 +164,25 @@ class FacturaController extends Controller
                 }
 
                 try {
-                    dispatch(new SendReceiptNotifications($recibo->id, [
+                    SendReceiptNotifications::dispatchSync($recibo->id, [
                         'tipo_servicio' => $tipoServicio,
                         'link_producto' => $request->input('link_producto'),
-                    ]));
+                    ]);
                 } catch (\Exception $e) {
                     Log::error('Error encolando notificaciones de recibo', [
+                        'error' => $e->getMessage(),
+                        'id_recibo' => $recibo->id,
+                    ]);
+                }
+            }
+            if (!empty($recibo->email_cliente) && $tipoServicio !== 'BASIC') {
+                try {
+                    SendReceiptNotifications::dispatchSync($recibo->id, [
+                        'tipo_servicio' => $tipoServicio,
+                        'link_producto' => $request->input('link_producto'),
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error('Error enviando correo de recibo (sync)', [
                         'error' => $e->getMessage(),
                         'id_recibo' => $recibo->id,
                     ]);
@@ -200,6 +214,7 @@ class FacturaController extends Controller
     {
         try {
             $casillero = trim((string) $casillero);
+            $casilleroNorm = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $casillero));
 
             $crmLookupUrl = (string) config('services.crm.lookup_url', '');
             if ($crmLookupUrl !== '') {
@@ -247,6 +262,7 @@ class FacturaController extends Controller
             }
 
             $cliente = Recibo::where('casillero', $casillero)
+                ->orWhereRaw("REPLACE(REPLACE(UPPER(casillero), '-', ''), ' ', '') = ?", [$casilleroNorm])
                 ->orderBy('id', 'desc')
                 ->first();
 
@@ -256,9 +272,50 @@ class FacturaController extends Controller
                     'email_cliente' => $cliente->email_cliente,
                     'source' => 'recibos',
                 ]);
-            } else {
-                return response()->json(['message' => 'Cliente nuevo'], 404);
             }
+
+            $fromPurchase = PurchaseRequest::query()
+                ->where('client_code', $casillero)
+                ->orWhereRaw("REPLACE(REPLACE(UPPER(client_code), '-', ''), ' ', '') = ?", [$casilleroNorm])
+                ->orderByDesc('id')
+                ->first();
+
+            if ($fromPurchase) {
+                return response()->json([
+                    'cliente' => $fromPurchase->client_name,
+                    'email_cliente' => $fromPurchase->account_email,
+                    'source' => 'compras',
+                ]);
+            }
+
+            return response()->json(['message' => 'Cliente nuevo'], 404);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Error al buscar'], 500);
+        }
+    }
+
+    public function buscarClientePorEmail($email)
+    {
+        try {
+            $email = strtolower(trim((string) $email));
+            if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                return response()->json(['message' => 'Email inválido'], 422);
+            }
+
+            $cliente = Recibo::whereRaw('lower(email_cliente) = ?', [$email])
+                ->orderBy('id', 'desc')
+                ->first();
+
+            if ($cliente) {
+                return response()->json([
+                    'cliente' => $cliente->cliente,
+                    'email_cliente' => $cliente->email_cliente,
+                    'casillero' => $cliente->casillero,
+                    'source' => 'recibos',
+                ]);
+            }
+
+            return response()->json(['message' => 'Cliente no encontrado'], 404);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Error al buscar'], 500);
         }

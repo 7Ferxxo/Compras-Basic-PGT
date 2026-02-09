@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap");
+
 :root {
     --primary-color: #003366;
     --danger-color: #e53935;
@@ -8,7 +10,7 @@
     --border-color: #dddddd;
     --shadow-color: rgba(0,0,0,0.1);
 
-    --font-family: Arial, sans-serif;
+    --font-family: "Roboto", Arial, sans-serif;
     --border-radius-sm: 5px;
     --border-radius-md: 10px;
     --box-shadow: 0px 0px 10px var(--shadow-color);

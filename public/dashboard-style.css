@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap");
+
 :root{
   --dash-bg0: #0b1020;
   --dash-bg: #eef2f7;
@@ -22,7 +24,7 @@
 body.pgt-dashboard{
   margin: 0;
   padding: 0;
-  font-family: "Bahnschrift", "Segoe UI Variable Text", "Segoe UI", ui-sans-serif, system-ui, -apple-system, Arial, sans-serif;
+  font-family: "Roboto", "Segoe UI", Arial, sans-serif;
   color: var(--dash-text);
   background:
     radial-gradient(1200px 520px at 10% 0%, rgba(59,130,246,.18), transparent 58%),
@@ -384,4 +386,3 @@ body.pgt-dashboard{
   .pgt-dashboard .field.actions{ grid-column: span 1; }
   .pgt-dashboard .top{ padding: 16px; }
 }
-

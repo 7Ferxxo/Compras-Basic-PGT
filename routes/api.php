@@ -11,6 +11,7 @@ Route::middleware('throttle:60,1')->group(function () {
     Route::get('/health', HealthController::class);
 
     Route::get('/cliente/{casillero}', [FacturaController::class, 'buscarCliente'])->middleware('throttle:30,1');
+    Route::get('/cliente-email/{email}', [FacturaController::class, 'buscarClientePorEmail'])->middleware('throttle:30,1');
     Route::get('/stores', [StoresController::class, 'index']);
     Route::get('/stats', [StatsController::class, 'index']);
     Route::get('/purchase-requests', [PurchaseRequestsController::class, 'index']);

@@ -5,110 +5,124 @@
     <title>Factura</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: Arial, Helvetica, sans-serif;
             font-size: 12px;
-            color: 
+            color: #2b2b2b;
+            margin: 0;
+            padding: 0;
         }
         .container {
             width: 100%;
-            margin: 0 auto;
+            padding: 24px 28px 18px 28px;
+        }
+        .brand {
+            width: 140px;
         }
         .header-table {
             width: 100%;
-            margin-bottom: 20px;
-            border-bottom: 2px solid 
+            margin-bottom: 12px;
         }
-        .logo {
-            width: 120px;
-        }
-        .info-box {
-            background-color: 
-            padding: 10px;
-            border-left: 5px solid 
-        }
-        h1 {
-            color: 
-            margin: 0;
+        .title {
             text-align: right;
+            color: #0b3a6b;
+            font-weight: bold;
+            font-size: 20px;
+            letter-spacing: 0.3px;
         }
-        .details-box {
+        .meta {
             text-align: right;
+            font-size: 12px;
+            color: #3b3b3b;
         }
-
+        .client-box {
+            margin-top: 10px;
+            background: #f2f2f2;
+            padding: 10px 12px;
+            border-left: 4px solid #0b3a6b;
+            width: 60%;
+        }
+        .divider {
+            border-top: 2px solid #0b3a6b;
+            margin: 14px 0 10px 0;
+        }
         .items-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
+            margin-top: 8px;
         }
         .items-table th {
-            background-color: 
-            color: 
-            padding: 8px;
+            background: #0b3a6b;
+            color: #ffffff;
             text-align: left;
+            padding: 8px 10px;
+            font-size: 12px;
         }
-        .text-right {
-            text-align: right !important;
-        }
-
         .items-table td {
             padding: 10px;
-            border-bottom: 1px solid 
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 12px;
         }
-
-        .totals-table {
-            width: 60%;
-            margin-left: auto;
-            margin-top: 20px;
-            border-collapse: collapse;
-        }
-        .totals-table td {
-            padding: 5px;
+        .text-right {
             text-align: right;
         }
+        .totals {
+            width: 50%;
+            margin-left: auto;
+            margin-top: 18px;
+            border-collapse: collapse;
+        }
+        .totals td {
+            padding: 4px 0;
+            text-align: right;
+            font-size: 12px;
+        }
+        .totals .line {
+            border-top: 2px solid #0b3a6b;
+        }
         .grand-total {
-            color: 
             font-weight: bold;
-            font-size: 14px;
-            border-top: 2px solid 
+            color: #0b3a6b;
+            font-size: 13px;
         }
         .footer {
-            margin-top: 50px;
+            margin-top: 28px;
             text-align: center;
             font-size: 10px;
-            color: 
-            border-top: 1px solid 
+            color: #7a7a7a;
+            border-top: 1px solid #e0e0e0;
             padding-top: 10px;
         }
     </style>
 </head>
 <body>
-
     <div class="container">
-        <table class="header-table">
+        <table class="header-table" cellpadding="0" cellspacing="0">
             <tr>
                 <td width="60%" valign="top">
-                    <img src="{{ public_path('imagenes/logo.png') }}" class="logo"><br><br>
+                    <img src="{{ public_path('imagenes/logo.png') }}" class="brand" alt="PGT Logistics">
 
-                    <div class="info-box">
+                    <div class="client-box">
                         <strong>CLIENTE:</strong><br>
                         {{ $recibo->cliente }}<br>
                         <small>{{ $recibo->email_cliente }}</small><br>
                         Casillero: <strong>{{ $recibo->casillero }}</strong>
                     </div>
                 </td>
-
-                <td width="40%" valign="top" class="details-box">
-                    <h1>FACTURA</h1>
-                    <br>
-                    <strong>No. {{ str_pad($recibo->id, 6, '0', STR_PAD_LEFT) }}</strong><br>
-                    Fecha: {{ \Carbon\Carbon::parse($recibo->fecha)->format('d/m/Y') }}<br>
-                    Sucursal: {{ $recibo->sucursal }}<br>
-                    Pago: {{ $recibo->metodo_pago }}
+                <td width="40%" valign="top">
+                    <div class="title">FACTURA</div>
+                    <div class="meta">
+                        <strong>No. {{ str_pad($recibo->id, 6, '0', STR_PAD_LEFT) }}</strong><br>
+                        Fecha: {{ \Carbon\Carbon::parse($recibo->fecha)->format('d/m/Y') }}<br>
+                        Sucursal: {{ $recibo->sucursal }}<br>
+                        Pago: {{ $recibo->metodo_pago }}
+                    </div>
                 </td>
             </tr>
         </table>
 
-        <table class="items-table">
+        <div class="divider"></div>
+
+        <table class="items-table" cellpadding="0" cellspacing="0">
             <thead>
                 <tr>
                     <th width="50%">TIENDA</th>
@@ -118,16 +132,14 @@
             </thead>
             <tbody>
                 <tr>
-                    <td>
-                        {{ $recibo->concepto ?: 'Sin tienda especificada' }}
-                    </td>
-                    <td class="text-right">B/. {{ number_format($recibo->monto, 2) }}</td>
+                    <td>{{ $recibo->concepto ?: 'Sin tienda especificada' }}</td>
+                    <td class="text-right">B/. {{ number_format($subtotal, 2) }}</td>
                     <td class="text-right">B/. {{ number_format($recibo->monto, 2) }}</td>
                 </tr>
             </tbody>
         </table>
 
-        <table class="totals-table">
+        <table class="totals" cellpadding="0" cellspacing="0">
             <tr>
                 <td>Precio del artículo:</td>
                 <td>B/. {{ number_format($subtotal, 2) }}</td>
@@ -137,8 +149,8 @@
                 <td>B/. {{ number_format($itbms, 2) }}</td>
             </tr>
             <tr>
-                <td class="grand-total">TOTAL A PAGAR:</td>
-                <td class="grand-total">B/. {{ number_format($recibo->monto, 2) }}</td>
+                <td class="line grand-total">TOTAL A PAGAR:</td>
+                <td class="line grand-total">B/. {{ number_format($recibo->monto, 2) }}</td>
             </tr>
         </table>
 
@@ -148,6 +160,5 @@
             Tel: 399-4305 | cobros.panamagt@gmail.com
         </div>
     </div>
-
 </body>
 </html>

@@ -283,8 +283,8 @@ class PurchaseRequestsController extends Controller
             'quotedTotal' => ['required', 'numeric', 'min:0', 'max:1000000'],
             'notes' => ['nullable', 'string', 'max:3000'],
             'quoteScreenshots' => ['required'],
-            'quoteScreenshots.*' => ['file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
-            'paymentProof' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
+            'quoteScreenshots.*' => ['file', 'mimes:pdf,jpg,jpeg,png', 'max:20480'],
+            'paymentProof' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:20480'],
         ]);
 
         if ($validator->fails()) {

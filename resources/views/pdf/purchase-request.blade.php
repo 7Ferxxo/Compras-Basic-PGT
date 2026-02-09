@@ -2,86 +2,175 @@
 <html lang="es">
   <head>
     <meta charset="utf-8" />
+    <title>Factura</title>
     <style>
-      body { font-family: DejaVu Sans, Arial, Helvetica, sans-serif; font-size: 12px; color: #0f172a; }
-      h1 { font-size: 18px; margin: 0 0 8px; color: #0ea5e9; }
-      .muted { color: #64748b; font-size: 11px; }
-      .status-badge { background: #fef3c7; color: #92400e; padding: 4px 8px; border-radius: 3px; font-weight: bold; font-size: 11px; }
-      table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-      th, td { border: 1px solid #e2e8f0; padding: 6px; text-align: left; }
-      th { background: #f8fafc; font-weight: bold; }
-      .next-steps { background: #ecfdf5; border-left: 3px solid #10b981; padding: 10px; margin-top: 15px; }
-      .next-steps h3 { margin: 0 0 8px; font-size: 13px; color: #065f46; }
-      .next-steps ul { margin: 0; padding-left: 20px; }
-      .next-steps li { margin-bottom: 4px; font-size: 11px; color: #065f46; }
+      body {
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 12px;
+        color: #2b2b2b;
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        width: 90%;
+        margin: 0 auto;
+        padding: 26px 0 18px 0;
+      }
+      .brand {
+        width: 140px;
+      }
+      .header-table {
+        width: 100%;
+        margin-bottom: 12px;
+      }
+      .title {
+        text-align: right;
+        color: #0b3a6b;
+        font-weight: bold;
+        font-size: 20px;
+        letter-spacing: 0.3px;
+      }
+      .meta {
+        text-align: right;
+        font-size: 12px;
+        color: #3b3b3b;
+      }
+      .client-box {
+        margin-top: 10px;
+        background: #f2f2f2;
+        padding: 10px 12px;
+        border-left: 4px solid #0b3a6b;
+        width: 62%;
+      }
+      .divider {
+        border-top: 2px solid #0b3a6b;
+        margin: 14px 0 10px 0;
+      }
+      .items-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 8px;
+      }
+      .items-table th {
+        background: #0b3a6b;
+        color: #ffffff;
+        text-align: left;
+        padding: 8px 10px;
+        font-size: 12px;
+      }
+      .items-table td {
+        padding: 10px;
+        border-bottom: 1px solid #e0e0e0;
+        font-size: 12px;
+      }
+      .text-right {
+        text-align: right;
+      }
+      .totals {
+        width: 52%;
+        margin: 18px 0 0 auto;
+        border-collapse: collapse;
+      }
+      .totals td {
+        padding: 4px 0;
+        text-align: right;
+        font-size: 12px;
+      }
+      .totals .line {
+        border-top: 2px solid #0b3a6b;
+      }
+      .grand-total {
+        font-weight: bold;
+        color: #0b3a6b;
+        font-size: 13px;
+      }
+      .footer {
+        margin-top: 28px;
+        text-align: center;
+        font-size: 10px;
+        color: #7a7a7a;
+        border-top: 1px solid #e0e0e0;
+        padding-top: 10px;
+      }
     </style>
   </head>
   <body>
-    <h1>Comprobante de Solicitud de Compra</h1>
-    <div class="muted">Código: {{ $request->code }}</div>
-    <div class="muted">Fecha: {{ optional($request->created_at)->format('Y-m-d H:i') }}</div>
-    <div style="margin-top: 8px;"><span class="status-badge">ESTADO: CREADA</span></div>
+    @php
+      $subtotal = (float) ($request->quoted_total ?? 0);
+      $comision = (float) ($request->american_card_charge ?? 0);
+      $residencial = (float) ($request->residential_charge ?? 0);
+      $total = $subtotal + $comision + $residencial;
+      $sucursal = '-';
+      if (!empty($request->notes) && str_contains($request->notes, 'Sucursal:')) {
+        $firstLine = strtok($request->notes, "\n");
+        $sucursal = trim(str_replace('Sucursal:', '', $firstLine));
+      }
+    @endphp
 
-    <table>
-      <tr>
-        <th>Cliente</th>
-        <td>{{ $request->client_name }}</td>
-      </tr>
-      <tr>
-        <th>Casillero</th>
-        <td>{{ $request->client_code }}</td>
-      </tr>
-      <tr>
-        <th>Tienda</th>
-        <td>{{ $storeName }}</td>
-      </tr>
-      <tr>
-        <th>Método de pago</th>
-        <td>{{ $request->payment_method ?? '-' }}</td>
-      </tr>
-      <tr>
-        <th>Precio</th>
-        <td>B/. {{ number_format((float) $request->quoted_total, 2, '.', '') }}</td>
-      </tr>
-      <tr>
-        <th>Comisión</th>
-        <td>B/. {{ number_format((float) ($request->american_card_charge ?? 0), 2, '.', '') }}</td>
-      </tr>
-      <tr>
-        <th>Cargo residencial</th>
-        <td>B/. {{ number_format((float) ($request->residential_charge ?? 0), 2, '.', '') }}</td>
-      </tr>
-      <tr>
-        <th style="background: #e0f2fe;">Total</th>
-        <td style="background: #e0f2fe; font-weight: bold;">
-          @php
-            $total = (float) ($request->quoted_total ?? 0) + (float) ($request->american_card_charge ?? 0) + (float) ($request->residential_charge ?? 0);
-          @endphp
-          B/. {{ number_format($total, 2, '.', '') }}
-        </td>
-      </tr>
-      <tr>
-        <th>Link</th>
-        <td style="word-break: break-all; font-size: 10px;">{{ $request->item_link ?: '-' }}</td>
-      </tr>
-      <tr>
-        <th>Descripción</th>
-        <td>{{ $request->item_options ?: '-' }}</td>
-      </tr>
-      <tr>
-        <th>Notas</th>
-        <td>{{ $request->notes ?: '-' }}</td>
-      </tr>
-    </table>
+    <div class="container">
+      <table class="header-table" cellpadding="0" cellspacing="0">
+        <tr>
+          <td width="60%" valign="top">
+            <img src="{{ public_path('imagenes/logo.png') }}" class="brand" alt="PGT Logistics">
 
-    <div class="next-steps">
-      <h3>Próximos Pasos</h3>
-      <ul>
-        <li>Tu solicitud ha sido recibida y está en estado CREADA</li>
-        <li>Nuestro equipo revisará la información proporcionada</li>
-        <li>Te notificaremos cuando esté lista para enviar al supervisor</li>
-        <li>Podrás hacer seguimiento del estado en el panel de compras</li>
-      </ul>
+            <div class="client-box">
+              <strong>CLIENTE:</strong><br>
+              {{ $request->client_name }}<br>
+              <small>{{ $request->account_email ?: '-' }}</small><br>
+              Casillero: <strong>{{ $request->client_code }}</strong>
+            </div>
+          </td>
+          <td width="40%" valign="top">
+            <div class="title">FACTURA</div>
+            <div class="meta">
+              <strong>No. {{ $request->code }}</strong><br>
+              Fecha: {{ optional($request->created_at)->format('d/m/Y') }}<br>
+              Sucursal: {{ $sucursal }}<br>
+              Pago: {{ $request->payment_method ?? '-' }}
+            </div>
+          </td>
+        </tr>
+      </table>
+
+      <div class="divider"></div>
+
+      <table class="items-table" cellpadding="0" cellspacing="0">
+        <thead>
+          <tr>
+            <th width="50%">TIENDA</th>
+            <th width="25%" class="text-right">PRECIO</th>
+            <th width="25%" class="text-right">TOTAL</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>{{ $storeName }}</td>
+            <td class="text-right">B/. {{ number_format($subtotal, 2, '.', '') }}</td>
+            <td class="text-right">B/. {{ number_format($total, 2, '.', '') }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <table class="totals" cellpadding="0" cellspacing="0">
+        <tr>
+          <td>Precio del artículo:</td>
+          <td>B/. {{ number_format($subtotal, 2, '.', '') }}</td>
+        </tr>
+        <tr>
+          <td>Comisión:</td>
+          <td>B/. {{ number_format($comision, 2, '.', '') }}</td>
+        </tr>
+        <tr>
+          <td class="line grand-total">TOTAL A PAGAR:</td>
+          <td class="line grand-total">B/. {{ number_format($total, 2, '.', '') }}</td>
+        </tr>
+      </table>
+
+      <div class="footer">
+        <strong>Gracias por su preferencia</strong><br>
+        PGT LOGISTICS GROUP S.A. | RUC: 155713237-2-2021 DV: 21<br>
+        Tel: 399-4305 | cobros.panamagt@gmail.com
+      </div>
     </div>
   </body>
 </html>

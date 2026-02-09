@@ -194,7 +194,7 @@ class PurchaseRequestReceiptTest extends TestCase
             'quotedTotal' => '40.00',
             'storeId' => '1',
             'itemLink' => 'https://walmart.com/item/test',
-            'accountEmail' => '', // No email
+            'accountEmail' => '',
             'quoteScreenshots' => [
                 UploadedFile::fake()->create('screenshot.png', 10, 'image/png'),
             ],

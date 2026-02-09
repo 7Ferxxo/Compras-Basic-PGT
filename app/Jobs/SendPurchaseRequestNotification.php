@@ -18,7 +18,7 @@ class SendPurchaseRequestNotification implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $tries = 3;
-    public $backoff = [30, 120, 300]; // 30s, 2min, 5min
+    public $backoff = [30, 120, 300];
 
     public function __construct(
         public int $purchaseRequestId,
