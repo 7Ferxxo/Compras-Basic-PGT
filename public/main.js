@@ -224,8 +224,15 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             body: JSON.stringify(datosRecibo)
         })
-        .then(response => response.json())
-        .then(data => {
+        .then(async (response) => {
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                const msg = data?.message || `HTTP ${response.status}`;
+                throw new Error(msg);
+            }
+            return data;
+        })
+        .then((data) => {
             alert('Recibo de compra enviado con éxito!');
             facturaForm.reset();
             actualizarTotales();
@@ -238,7 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .catch((error) => {
             console.error('Error:', error);
-            alert('Hubo un error al enviar el recibo.');
+            alert(`Hubo un error al enviar el recibo. ${error?.message || ''}`.trim());
             statusEl.textContent = '';
         })
         .finally(() => {
@@ -249,4 +256,3 @@ document.addEventListener('DOMContentLoaded', () => {
 
     facturaForm.addEventListener('submit', manejarEnvioFactura);
 });
-

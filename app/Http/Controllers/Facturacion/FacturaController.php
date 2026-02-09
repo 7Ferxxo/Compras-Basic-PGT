@@ -122,6 +122,7 @@ class FacturaController extends Controller
 
             $nombreArchivo = 'recibo-' . $recibo->id . '-' . time() . '.pdf';
             $pdf = Pdf::loadView('pdf.recibo', compact('recibo', 'subtotal', 'itbms'));
+            $pdfBytes = $pdf->output();
             
             $rutaCarpeta = public_path('facturas_pdf');
             if (!is_dir($rutaCarpeta)) {
@@ -129,9 +130,10 @@ class FacturaController extends Controller
             }
             
             $rutaCompleta = $rutaCarpeta . '/' . $nombreArchivo;
-            $pdf->save($rutaCompleta);
+            file_put_contents($rutaCompleta, $pdfBytes);
 
             $recibo->pdf_filename = $nombreArchivo;
+            $recibo->pdf_blob = $pdfBytes;
             $recibo->save();
 
             $tipoServicio = strtoupper((string) $request->input('tipo_servicio', 'OTRO'));

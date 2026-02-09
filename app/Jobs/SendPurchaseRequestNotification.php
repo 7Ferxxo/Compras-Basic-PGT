@@ -27,8 +27,18 @@ class SendPurchaseRequestNotification implements ShouldQueue
     ) {
     }
 
+    private function configurePdfRuntime(): void
+    {
+        @ini_set('memory_limit', '512M');
+        @ini_set('max_execution_time', '0');
+        @ini_set('max_input_time', '0');
+        @set_time_limit(0);
+    }
+
     public function handle(): void
     {
+        $this->configurePdfRuntime();
+
         $purchaseRequest = PurchaseRequest::query()->find($this->purchaseRequestId);
         
         if (!$purchaseRequest) {

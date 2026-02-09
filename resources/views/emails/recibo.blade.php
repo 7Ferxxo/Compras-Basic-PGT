@@ -155,8 +155,8 @@
             <div class="content">
                 <p class="greeting">Hola {{ $recibo->cliente }},</p>
                 <p class="lead">
-                    Gracias por tu compra. Adjunto encontrarás tu recibo en PDF. A continuación te compartimos un
-                    resumen de la transacción.
+                    Muchas gracias por su compra. Apreciamos su preferencia. Adjunto encontrará su recibo en PDF. A
+                    continuación le compartimos un resumen de la transacción.
                 </p>
 
                 <div class="card">
@@ -213,7 +213,7 @@
                 </table>
 
                 <p class="note">
-                    Si tienes alguna consulta, responde a este correo o contáctanos a través de nuestros canales de atención.
+                    Si tiene alguna consulta, responda a este correo o contáctenos a través de nuestros canales de atención.
                 </p>
             </div>
 
