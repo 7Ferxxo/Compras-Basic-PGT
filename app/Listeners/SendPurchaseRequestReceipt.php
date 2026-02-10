@@ -20,20 +20,20 @@ class SendPurchaseRequestReceipt
             return;
         }
 
-        Log::info('Dispatching receipt notification job (sync)', [
+        Log::info('Dispatching receipt notification job', [
             'request_id' => $event->purchaseRequest->id,
             'code' => $event->purchaseRequest->code,
             'email' => $emailTo,
         ]);
 
         try {
-            SendPurchaseRequestNotification::dispatchSync(
+            SendPurchaseRequestNotification::dispatch(
                 $event->purchaseRequest->id,
                 $event->charges,
                 $event->storeName
             );
         } catch (\Throwable $exception) {
-            Log::error('Receipt email failed to send (sync)', [
+            Log::error('Receipt email job failed to dispatch', [
                 'request_id' => $event->purchaseRequest->id,
                 'code' => $event->purchaseRequest->code,
                 'email' => $emailTo,

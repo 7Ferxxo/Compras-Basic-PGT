@@ -15,11 +15,20 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class PurchaseRequestsController extends Controller
 {
     public function __construct(private readonly PurchaseRequestService $service)
     {
+    }
+
+    private function configurePdfRuntime(): void
+    {
+        @ini_set('memory_limit', '768M');
+        @ini_set('max_execution_time', '120');
+        @ini_set('max_input_time', '120');
+        @set_time_limit(120);
     }
 
     private function allowedStatuses(): array
@@ -667,6 +676,47 @@ class PurchaseRequestsController extends Controller
         ]);
     }
 
+    public function receiptPdf(string $id)
+    {
+        $this->configurePdfRuntime();
+
+        $purchaseRequest = PurchaseRequest::query()->find((int) $id);
+        if (!$purchaseRequest) {
+            abort(404, 'Solicitud no encontrada');
+        }
+
+        $charges = $this->service->computeCharges(
+            $purchaseRequest->store_id,
+            $purchaseRequest->item_quantity,
+            (float) $purchaseRequest->quoted_total
+        );
+
+        $storeName = $purchaseRequest->store?->name ?? 'OTROS';
+        if ($purchaseRequest->store_id === 7 && $purchaseRequest->store_custom_name) {
+            $storeName .= ' - ' . $purchaseRequest->store_custom_name;
+        }
+
+        try {
+            $pdf = Pdf::loadView('pdf.purchase-request', [
+                'request' => $purchaseRequest,
+                'storeName' => $storeName,
+                'charges' => $charges,
+            ]);
+
+            $pdf->setPaper('a4');
+            return $pdf->stream($purchaseRequest->code . '.pdf');
+        } catch (\Throwable $e) {
+            Log::error('Error generando PDF de solicitud de compra', [
+                'request_id' => $purchaseRequest->id,
+                'code' => $purchaseRequest->code,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response('No se pudo generar el PDF en este momento.', 500)
+                ->header('Content-Type', 'text/plain; charset=UTF-8');
+        }
+    }
+
     public function resendReceipt(Request $request, string $id)
     {
         $purchaseRequest = PurchaseRequest::query()->find((int) $id);
@@ -701,13 +751,13 @@ class PurchaseRequestsController extends Controller
             'action' => 'receipt_resend_requested',
             'from_status' => $this->normalizeStatus($purchaseRequest->status),
             'to_status' => $this->normalizeStatus($purchaseRequest->status),
-            'note' => 'ReenvÃ­o de comprobante solicitado manualmente',
+            'note' => 'Reenvio de comprobante solicitado manualmente',
             'actor_name' => auth()->user()?->name ?? 'system',
         ]);
 
         return $this->okResponse([
             'ok' => true,
-            'message' => 'Comprobante en cola para reenvÃ­o',
+            'message' => 'Comprobante en cola para reenvio',
             'email' => $emailTo,
         ]);
     }

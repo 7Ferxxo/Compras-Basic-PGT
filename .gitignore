@@ -28,3 +28,8 @@ Thumbs.db
 pgt_dev
 .git-new/
 .git-worktree/
+/.composer-cache/
+/.composer-home/
+/.composer-tmp/
+/.npm-cache/
+/.tools/

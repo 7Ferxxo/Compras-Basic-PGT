@@ -11,6 +11,7 @@ use App\Services\Compras\PurchaseRequestService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class FacturaController extends Controller
 {
@@ -192,7 +193,7 @@ class FacturaController extends Controller
             }
 
             return response()->json([
-                'message'   => 'Â¡Recibo generado y correo enviado!',
+                'message'   => 'Recibo generado y correo enviado!',
                 'id_recibo' => $recibo->id,
                 'pdf_url'   => asset('facturas_pdf/' . $nombreArchivo)
             ]);
@@ -205,8 +206,59 @@ class FacturaController extends Controller
     public function obtenerRecibos()
     {
         try {
-            $recibos = Recibo::orderBy('id', 'desc')->get();
-            return response()->json($recibos);
+            $recibos = Recibo::orderBy('id', 'desc')->get()->map(function (Recibo $r) {
+                return [
+                    'id' => $r->id,
+                    'cliente' => $r->cliente,
+                    'casillero' => $r->casillero,
+                    'email_cliente' => $r->email_cliente,
+                    'sucursal' => $r->sucursal,
+                    'monto' => $r->monto,
+                    'fecha' => $r->fecha,
+                    'metodo_pago' => $r->metodo_pago,
+                    'pdf_url' => url('/recibos/' . $r->id . '/pdf'),
+                    'source' => 'facturacion',
+                ];
+            });
+
+            $purchaseReceipts = DB::table('purchase_requests as pr')
+                ->whereNotNull('pr.receipt_sent_at')
+                ->orderByDesc('pr.id')
+                ->get()
+                ->map(function ($row) {
+                    $notes = (string) ($row->notes ?? '');
+                    $sucursal = null;
+                    if (preg_match('/Sucursal:\s*([^\n\r]+)/i', $notes, $m)) {
+                        $sucursal = trim((string) $m[1]);
+                    }
+
+                    $monto = (float) ($row->quoted_total ?? 0)
+                        + (float) ($row->residential_charge ?? 0)
+                        + (float) ($row->american_card_charge ?? 0);
+
+                    return [
+                        'id' => 'PR-' . $row->id,
+                        'cliente' => $row->client_name,
+                        'casillero' => $row->client_code,
+                        'email_cliente' => $row->account_email,
+                        'sucursal' => $sucursal ?: '-',
+                        'monto' => $monto,
+                        'fecha' => $row->receipt_sent_at ?: $row->created_at,
+                        'metodo_pago' => $row->payment_method ?: '-',
+                        'pdf_url' => url('/purchase-requests/' . $row->id . '/pdf'),
+                        'source' => 'compras',
+                    ];
+                });
+
+            $items = $recibos->concat($purchaseReceipts)->sortByDesc(function ($item) {
+                try {
+                    return strtotime((string) ($item['fecha'] ?? '')) ?: 0;
+                } catch (\Throwable $e) {
+                    return 0;
+                }
+            })->values();
+
+            return response()->json($items);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Error al cargar recibos'], 500);
         }
@@ -256,7 +308,7 @@ class FacturaController extends Controller
                         ]);
                     }
                 } catch (\Exception $e) {
-                    Log::warning('ExcepciÃ³n consultando CRM por casillero', [
+                    Log::warning('Excepcion consultando CRM por casillero', [
                         'error' => $e->getMessage(),
                         'casillero' => $casillero,
                     ]);
@@ -301,7 +353,7 @@ class FacturaController extends Controller
         try {
             $email = strtolower(trim((string) $email));
             if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                return response()->json(['message' => 'Email inválido'], 422);
+                return response()->json(['message' => 'Email invalido'], 422);
             }
 
             $cliente = Recibo::whereRaw('lower(email_cliente) = ?', [$email])

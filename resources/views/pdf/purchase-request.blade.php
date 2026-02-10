@@ -111,7 +111,7 @@
       <table class="header-table" cellpadding="0" cellspacing="0">
         <tr>
           <td width="60%" valign="top">
-            <img src="{{ public_path('imagenes/logo.png') }}" class="brand" alt="PGT Logistics">
+            <div style="font-weight:700;color:#0b3a6b;font-size:22px;letter-spacing:1px;">PGT LOGISTICS</div>
 
             <div class="client-box">
               <strong>CLIENTE:</strong><br>
@@ -153,11 +153,11 @@
 
       <table class="totals" cellpadding="0" cellspacing="0">
         <tr>
-          <td>Precio del artículo:</td>
+          <td>Precio del artÃƒÆ’Ã‚Â­culo:</td>
           <td>B/. {{ number_format($subtotal, 2, '.', '') }}</td>
         </tr>
         <tr>
-          <td>Comisión:</td>
+          <td>ComisiÃƒÆ’Ã‚Â³n:</td>
           <td>B/. {{ number_format($comision, 2, '.', '') }}</td>
         </tr>
         <tr>

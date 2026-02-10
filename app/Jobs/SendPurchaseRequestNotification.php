@@ -40,7 +40,7 @@ class SendPurchaseRequestNotification implements ShouldQueue
         $this->configurePdfRuntime();
 
         $purchaseRequest = PurchaseRequest::query()->find($this->purchaseRequestId);
-        
+
         if (!$purchaseRequest) {
             Log::error('Purchase request not found for receipt notification', [
                 'request_id' => $this->purchaseRequestId,
@@ -49,7 +49,7 @@ class SendPurchaseRequestNotification implements ShouldQueue
         }
 
         $emailTo = trim((string) $purchaseRequest->account_email);
-        
+
         if ($emailTo === '') {
             Log::warning('No email address for receipt notification', [
                 'request_id' => $purchaseRequest->id,
@@ -60,6 +60,9 @@ class SendPurchaseRequestNotification implements ShouldQueue
 
         $purchaseRequest->increment('receipt_send_attempts');
 
+        $pdfBytes = null;
+        $pdfError = null;
+
         try {
             $pdf = Pdf::loadView('pdf.purchase-request', [
                 'request' => $purchaseRequest,
@@ -68,7 +71,16 @@ class SendPurchaseRequestNotification implements ShouldQueue
             ]);
 
             $pdfBytes = $pdf->output();
+        } catch (\Throwable $e) {
+            $pdfError = $e->getMessage();
+            Log::warning('PDF generation failed, sending email without attachment', [
+                'request_id' => $purchaseRequest->id,
+                'code' => $purchaseRequest->code,
+                'error' => $pdfError,
+            ]);
+        }
 
+        try {
             Mail::send('emails.purchase-request', [
                 'request' => $purchaseRequest,
                 'storeName' => $this->storeName,
@@ -76,12 +88,14 @@ class SendPurchaseRequestNotification implements ShouldQueue
             ], function ($message) use ($emailTo, $purchaseRequest, $pdfBytes) {
                 $subject = 'Nueva Solicitud de Compra - ' . $purchaseRequest->code;
                 $message->to($emailTo)->subject($subject);
-                $message->attachData($pdfBytes, $purchaseRequest->code . '.pdf');
+                if ($pdfBytes !== null) {
+                    $message->attachData($pdfBytes, $purchaseRequest->code . '.pdf');
+                }
             });
 
             $purchaseRequest->update([
                 'receipt_sent_at' => now(),
-                'receipt_send_error' => null,
+                'receipt_send_error' => $pdfError,
             ]);
 
             RequestLog::query()->create([
@@ -89,7 +103,9 @@ class SendPurchaseRequestNotification implements ShouldQueue
                 'action' => 'receipt_sent',
                 'from_status' => $purchaseRequest->status,
                 'to_status' => $purchaseRequest->status,
-                'note' => "Comprobante enviado a {$emailTo}",
+                'note' => $pdfBytes === null
+                    ? "Correo enviado sin PDF adjunto por error de render: {$pdfError}"
+                    : "Comprobante enviado a {$emailTo}",
                 'actor_name' => 'system',
             ]);
 
@@ -98,11 +114,11 @@ class SendPurchaseRequestNotification implements ShouldQueue
                 'code' => $purchaseRequest->code,
                 'email' => $emailTo,
                 'attempt' => $purchaseRequest->receipt_send_attempts,
+                'with_pdf' => $pdfBytes !== null,
             ]);
-
         } catch (\Throwable $e) {
             $errorMessage = $e->getMessage();
-            
+
             $purchaseRequest->update([
                 'receipt_send_error' => $errorMessage,
             ]);
@@ -131,7 +147,7 @@ class SendPurchaseRequestNotification implements ShouldQueue
     public function failed(\Throwable $exception): void
     {
         $purchaseRequest = PurchaseRequest::query()->find($this->purchaseRequestId);
-        
+
         if ($purchaseRequest) {
             Log::error('Receipt notification failed permanently after all retries', [
                 'request_id' => $purchaseRequest->id,
@@ -145,7 +161,7 @@ class SendPurchaseRequestNotification implements ShouldQueue
                 'action' => 'receipt_send_failed_permanently',
                 'from_status' => $purchaseRequest->status,
                 'to_status' => $purchaseRequest->status,
-                'note' => "Fallo permanente después de {$purchaseRequest->receipt_send_attempts} intentos",
+                'note' => "Fallo permanente despues de {$purchaseRequest->receipt_send_attempts} intentos",
                 'actor_name' => 'system',
             ]);
         }

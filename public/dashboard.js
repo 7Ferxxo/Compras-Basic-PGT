@@ -131,7 +131,7 @@
     $("#kpiAmount").textContent = money(total);
 
     const last = items[0];
-    $("#kpiLast").textContent = last ? `#${last.id} · ${formatDate(last.fecha)}` : "-";
+    $("#kpiLast").textContent = last ? `#${last.id} - ${formatDate(last.fecha)}` : "-";
   }
 
   function renderFilterOptions() {
@@ -172,7 +172,7 @@
                   : state.sortKey === "fecha"
                     ? "Fecha"
                     : state.sortKey === "metodo_pago"
-                      ? "Método"
+                      ? "Metodo"
                       : state.sortKey;
     const dir = state.sortDir === "asc" ? "asc" : "desc";
     $("#metaHint").textContent = `Ordenado por ${name} (${dir})`;
@@ -182,7 +182,7 @@
     return `
       <div class="pager">
         <button class="btn ghost" type="button" data-page="prev" ${page <= 1 ? "disabled" : ""}>Anterior</button>
-        <div class="info">Página ${page} / ${totalPages || 1}</div>
+        <div class="info">Pagina ${page} / ${totalPages || 1}</div>
         <button class="btn ghost" type="button" data-page="next" ${page >= totalPages ? "disabled" : ""}>Siguiente</button>
       </div>
     `;
@@ -211,7 +211,7 @@
     tbody.innerHTML = "";
     for (const r of rows) {
       const tr = document.createElement("tr");
-      const pdf = r?.id ? `/recibos/${encodeURIComponent(r.id)}/pdf` : null;
+      const pdf = r?.pdf_url || (r?.id ? `/recibos/${encodeURIComponent(r.id)}/pdf` : null);
 
       tr.innerHTML = `
         <td data-label="#">${escapeHtml(r.id)}</td>
@@ -221,7 +221,7 @@
         <td data-label="Sucursal">${escapeHtml(r.sucursal || "-")}</td>
         <td data-label="Monto"><b>${money(r.monto)}</b></td>
         <td data-label="Fecha"><span class="muted">${escapeHtml(formatDate(r.fecha))}</span></td>
-        <td data-label="Método">${escapeHtml(r.metodo_pago || "-")}</td>
+        <td data-label="Metodo">${escapeHtml(r.metodo_pago || "-")}</td>
         <td data-label="PDF">
           ${
             pdf
@@ -350,4 +350,3 @@
     load();
   });
 })();
-
