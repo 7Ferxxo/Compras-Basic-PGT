@@ -18,6 +18,8 @@ Route::middleware('throttle:60,1')->group(function () {
     Route::get('/purchase-requests/{id}', [PurchaseRequestsController::class, 'show']);
 
     Route::middleware('compras.token')->group(function () {
+        Route::post('/auth/actor-context', [PurchaseRequestsController::class, 'issueActorContext']);
+        Route::get('/auth/me', [PurchaseRequestsController::class, 'currentActor']);
         Route::post('/purchase-requests/receipt/{reciboId}/attachments', [PurchaseRequestsController::class, 'attachFromReceipt']);
         Route::patch('/purchase-requests/{id}/status', [PurchaseRequestsController::class, 'patchStatus']);
         Route::post('/purchase-requests/{id}/send', [PurchaseRequestsController::class, 'sendToSupervisor']);

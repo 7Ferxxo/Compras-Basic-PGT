@@ -51,6 +51,10 @@
         send_to_supervisor: "En proceso",
         attachment_added: "Adjunto agregado",
         payment_proof_attached: "Comprobante adjunto",
+        receipt_sent: "Comprobante enviado",
+        receipt_resend_requested: "Reenvio solicitado",
+        receipt_send_failed: "Error al enviar comprobante",
+        receipt_send_failed_permanently: "Fallo permanente al enviar comprobante",
       }[action] || action || "-"
     );
   }

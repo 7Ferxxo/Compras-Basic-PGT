@@ -91,10 +91,46 @@
     }
   }
 
+  function getActorToken() {
+    try {
+      const fromSession = (sessionStorage.getItem("PGT_ACTOR_CONTEXT") || "").trim();
+      if (fromSession) return fromSession;
+    } catch {}
+
+    try {
+      const fromLocal = (localStorage.getItem("PGT_ACTOR_CONTEXT") || "").trim();
+      if (fromLocal) return fromLocal;
+    } catch {}
+
+    const fromConfig = String(window.PGT?.config?.actorContext || "").trim();
+    if (fromConfig) return fromConfig;
+
+    return "";
+  }
+
   function withComprasToken(headers) {
     const token = getComprasToken();
     if (!token) return headers || {};
     return { ...(headers || {}), "X-Compras-Token": token };
+  }
+
+  function withActorContext(headers) {
+    const token = getActorToken();
+    if (!token) return headers || {};
+    return { ...(headers || {}), "X-Actor-Context": token };
+  }
+
+  function getInjectedActor() {
+    return window.PGT?.config?.currentUser || window.PGT_CURRENT_USER || null;
+  }
+
+  function normalizeActorPayload(actor) {
+    if (!actor || typeof actor !== "object") return null;
+    const user_id = String(actor.user_id || actor.userId || actor.id || "").trim();
+    const name = String(actor.name || actor.full_name || actor.fullName || "").trim();
+    const email = String(actor.email || actor.mail || "").trim();
+    if (!user_id && !name && !email) return null;
+    return { user_id, name, email };
   }
 
   window.PGT = window.PGT || {};
@@ -115,19 +151,65 @@
       requestJson(`/api/purchase-requests/${encodeURIComponent(id)}/status`, {
         method: "PATCH",
         body: payload,
-        headers: withComprasToken(),
+        headers: withActorContext(withComprasToken()),
       }),
     sendToSupervisor: (id, payload) =>
       requestJson(`/api/purchase-requests/${encodeURIComponent(id)}/send`, {
         method: "POST",
         body: payload || {},
-        headers: withComprasToken(),
+        headers: withActorContext(withComprasToken()),
       }),
     uploadAttachment: (id, formData) =>
       requestJson(`/api/purchase-requests/${encodeURIComponent(id)}/attachments`, {
         method: "POST",
         body: formData,
+        headers: withActorContext(withComprasToken()),
+      }),
+    issueActorContext: (actor) =>
+      requestJson("/api/auth/actor-context", {
+        method: "POST",
+        body: actor || {},
         headers: withComprasToken(),
       }),
+    getCurrentActor: () =>
+      requestJson("/api/auth/me", {
+        headers: withActorContext(withComprasToken()),
+      }),
+    setActorContextToken: (token, { persist = false } = {}) => {
+      const clean = String(token || "").trim();
+      try {
+        if (clean) {
+          sessionStorage.setItem("PGT_ACTOR_CONTEXT", clean);
+          if (persist) localStorage.setItem("PGT_ACTOR_CONTEXT", clean);
+        } else {
+          sessionStorage.removeItem("PGT_ACTOR_CONTEXT");
+          localStorage.removeItem("PGT_ACTOR_CONTEXT");
+        }
+      } catch {}
+      return clean;
+    },
+    bootstrapActorContext: async (actor, { persist = false } = {}) => {
+      const data = await requestJson("/api/auth/actor-context", {
+        method: "POST",
+        body: actor || {},
+        headers: withComprasToken(),
+      });
+      const token = String(data?.actor_token || "").trim();
+      if (token) {
+        window.PGT.api.setActorContextToken(token, { persist });
+      }
+      return data;
+    },
   };
+
+  (async () => {
+    const already = getActorToken();
+    if (already) return;
+    const actor = normalizeActorPayload(getInjectedActor());
+    if (!actor) return;
+    if (!getComprasToken()) return;
+    try {
+      await window.PGT.api.bootstrapActorContext(actor, { persist: true });
+    } catch {}
+  })();
 })();

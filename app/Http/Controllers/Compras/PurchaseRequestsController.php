@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Barryvdh\DomPDF\Facade\Pdf;
 
@@ -112,6 +113,135 @@ class PurchaseRequestsController extends Controller
         if ($got === '') return false;
 
         return hash_equals($expected, $got);
+    }
+
+    private function trimActor(?string $value): string
+    {
+        return (string) Str::of((string) $value)->squish()->limit(120, '');
+    }
+
+    private function parseActorToken(Request $request): ?array
+    {
+        $token = trim((string) $request->header('x-actor-context', ''));
+        if ($token === '') {
+            return null;
+        }
+
+        try {
+            $decoded = json_decode(Crypt::decryptString($token), true, 512, JSON_THROW_ON_ERROR);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        if (!is_array($decoded)) {
+            return null;
+        }
+
+        $userId = trim((string) ($decoded['user_id'] ?? ''));
+        $name = trim((string) ($decoded['name'] ?? ''));
+        $email = trim((string) ($decoded['email'] ?? ''));
+
+        if ($userId === '' && $name === '' && $email === '') {
+            return null;
+        }
+
+        return [
+            'user_id' => $userId,
+            'name' => $name,
+            'email' => $email,
+        ];
+    }
+
+    private function actorNameFromRequest(Request $request, string $fallback = 'system'): string
+    {
+        $authName = trim((string) (auth()->user()?->name ?? ''));
+        if ($authName !== '') {
+            return $this->trimActor($authName);
+        }
+
+        $actor = $this->parseActorToken($request);
+        if ($actor) {
+            $name = $this->trimActor($actor['name'] ?? '');
+            $email = trim((string) ($actor['email'] ?? ''));
+            $userId = $this->trimActor($actor['user_id'] ?? '');
+
+            if ($name !== '' && $email !== '') {
+                return $this->trimActor("{$name} ({$email})");
+            }
+            if ($name !== '') {
+                return $name;
+            }
+            if ($email !== '') {
+                return $this->trimActor($email);
+            }
+            if ($userId !== '') {
+                return $userId;
+            }
+        }
+
+        return $this->trimActor($fallback !== '' ? $fallback : 'system');
+    }
+
+    public function issueActorContext(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'user_id' => ['nullable', 'string', 'max:120'],
+            'name' => ['nullable', 'string', 'max:120'],
+            'email' => ['nullable', 'email', 'max:190'],
+        ]);
+        if ($validator->fails()) {
+            return $this->errorResponse('Datos invalidos', 422, $validator->errors());
+        }
+
+        $validated = $validator->validated();
+        $userId = trim((string) ($validated['user_id'] ?? ''));
+        $name = trim((string) ($validated['name'] ?? ''));
+        $email = trim((string) ($validated['email'] ?? ''));
+
+        if ($userId === '' && $name === '' && $email === '') {
+            return $this->errorResponse('Debe enviar user_id, name o email', 422);
+        }
+
+        $token = Crypt::encryptString(json_encode([
+            'user_id' => $userId,
+            'name' => $name,
+            'email' => $email,
+            'issued_at' => now()->toIso8601String(),
+        ], JSON_UNESCAPED_UNICODE));
+
+        return $this->okResponse([
+            'actor_token' => $token,
+            'actor' => [
+                'user_id' => $userId,
+                'name' => $name,
+                'email' => $email,
+            ],
+        ]);
+    }
+
+    public function currentActor(Request $request)
+    {
+        $authName = trim((string) (auth()->user()?->name ?? ''));
+        if ($authName !== '') {
+            return $this->okResponse([
+                'source' => 'laravel_auth',
+                'actor_name' => $this->trimActor($authName),
+            ]);
+        }
+
+        $actor = $this->parseActorToken($request);
+        if ($actor) {
+            return $this->okResponse([
+                'source' => 'actor_context',
+                'actor_name' => $this->actorNameFromRequest($request),
+                'actor' => $actor,
+            ]);
+        }
+
+        return $this->okResponse([
+            'source' => 'fallback',
+            'actor_name' => 'system',
+        ]);
     }
 
     public function index(Request $request)
@@ -374,7 +504,7 @@ class PurchaseRequestsController extends Controller
             'from_status' => null,
             'to_status' => $status,
             'note' => 'Creacion',
-            'actor_name' => auth()->user()?->name ?? $validated['clientName'] ?? 'system',
+            'actor_name' => $this->actorNameFromRequest($request, $validated['clientName'] ?? 'system'),
         ]);
 
         foreach ($screenshots as $file) {
@@ -458,7 +588,7 @@ class PurchaseRequestsController extends Controller
             'to_status' => $nextStatus,
             'note' => trim((string) ($validated['note'] ?? '')) ?: null,
             'created_at' => now(),
-            'actor_name' => auth()->user()?->name ?? 'system',
+            'actor_name' => $this->actorNameFromRequest($request),
         ]);
 
         return $this->okResponse([
@@ -505,7 +635,7 @@ class PurchaseRequestsController extends Controller
             'to_status' => 'sent_to_supervisor',
             'note' => $note,
             'created_at' => now(),
-            'actor_name' => auth()->user()?->name ?? 'system',
+            'actor_name' => $this->actorNameFromRequest($request),
         ]);
 
         return $this->okResponse([
@@ -546,7 +676,7 @@ class PurchaseRequestsController extends Controller
             'to_status' => $this->normalizeStatus($purchaseRequest->status),
             'note' => 'Adjunto: ' . $validated['type'],
             'created_at' => now(),
-            'actor_name' => auth()->user()?->name ?? 'system',
+            'actor_name' => $this->actorNameFromRequest($request),
         ]);
 
         return $this->okResponse([
@@ -665,7 +795,7 @@ class PurchaseRequestsController extends Controller
                 'to_status' => 'pending',
                 'note' => 'Comprobante adjunto desde recibo',
                 'created_at' => now(),
-                'actor_name' => auth()->user()?->name ?? 'system',
+                'actor_name' => $this->actorNameFromRequest($request),
             ]);
         }
 
@@ -762,7 +892,7 @@ class PurchaseRequestsController extends Controller
             'from_status' => $this->normalizeStatus($purchaseRequest->status),
             'to_status' => $this->normalizeStatus($purchaseRequest->status),
             'note' => 'Reenvio de comprobante solicitado manualmente',
-            'actor_name' => auth()->user()?->name ?? 'system',
+            'actor_name' => $this->actorNameFromRequest($request),
         ]);
 
         return $this->okResponse([
@@ -774,4 +904,3 @@ class PurchaseRequestsController extends Controller
         ]);
     }
 }
-

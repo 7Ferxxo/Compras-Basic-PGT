@@ -93,6 +93,7 @@
                         ${[
                           { value: "pending", label: "Pendiente" },
                           { value: "sent_to_supervisor", label: "En proceso" },
+                          { value: "completed", label: "Completada" },
                         ]
                           .map(
                             (s) =>
@@ -187,6 +188,5 @@
 
   document.addEventListener("DOMContentLoaded", init);
 })();
-
 
 
