@@ -432,16 +432,6 @@ class PurchaseRequestsController extends Controller
             return $this->errorResponse('No autorizado para cambiar a estado de compras', 403);
         }
 
-        if ($nextStatus === 'sent_to_supervisor') {
-            $hasProof = RequestAttachment::query()
-                ->where('request_id', $purchaseRequest->id)
-                ->where('type', 'PAYMENT_PROOF')
-                ->exists();
-            if (!$hasProof) {
-                return $this->errorResponse('No se puede enviar sin comprobante de pago', 400);
-            }
-        }
-
         $fromStatus = $this->normalizeStatus($purchaseRequest->status);
         if ($fromStatus !== $nextStatus && $nextStatus === 'sent_to_supervisor' && $fromStatus !== 'pending') {
             return $this->errorResponse('Solo se puede enviar al supervisor desde pendiente', 400);
@@ -487,14 +477,6 @@ class PurchaseRequestsController extends Controller
                 ...$stored,
                 'uploaded_at' => now(),
             ]);
-        }
-
-        $hasProof = RequestAttachment::query()
-            ->where('request_id', $purchaseRequest->id)
-            ->where('type', 'PAYMENT_PROOF')
-            ->exists();
-        if (!$hasProof) {
-            return $this->errorResponse('No se puede enviar sin comprobante de pago', 400);
         }
 
         $fromStatus = $this->normalizeStatus($purchaseRequest->status);
@@ -719,14 +701,16 @@ class PurchaseRequestsController extends Controller
             'action' => 'receipt_resend_requested',
             'from_status' => $this->normalizeStatus($purchaseRequest->status),
             'to_status' => $this->normalizeStatus($purchaseRequest->status),
-            'note' => 'Reenvío de comprobante solicitado manualmente',
+            'note' => 'ReenvÃ­o de comprobante solicitado manualmente',
             'actor_name' => auth()->user()?->name ?? 'system',
         ]);
 
         return $this->okResponse([
             'ok' => true,
-            'message' => 'Comprobante en cola para reenvío',
+            'message' => 'Comprobante en cola para reenvÃ­o',
             'email' => $emailTo,
         ]);
     }
 }
+
+

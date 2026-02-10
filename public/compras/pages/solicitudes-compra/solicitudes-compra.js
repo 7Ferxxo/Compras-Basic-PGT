@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   function $(sel) {
     return document.querySelector(sel);
   }
@@ -116,11 +116,9 @@
         const prev = sel.dataset.current || "pending";
         const next = sel.value;
         if (next === prev) return;
-
-        const note = prompt("Nota (opcional) para registro:", "") || "";
         try {
           sel.disabled = true;
-          await window.PGT.api.patchStatus(id, { status: next, note });
+          await window.PGT.api.patchStatus(id, { status: next });
           sel.dataset.current = next;
           await loadList(1);
         } catch (e) {
@@ -189,5 +187,6 @@
 
   document.addEventListener("DOMContentLoaded", init);
 })();
+
 
 
