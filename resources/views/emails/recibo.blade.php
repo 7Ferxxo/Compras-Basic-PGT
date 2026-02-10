@@ -125,7 +125,15 @@
             color: #0b3a6b;
         }
         .logo {
-            height: 28px;
+            height: 30px;
+            display: block;
+        }
+        .logo-wrap {
+            display: inline-block;
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 6px 8px;
+            line-height: 0;
         }
         @media (max-width: 480px) {
             .content, .header, .footer {
@@ -142,7 +150,9 @@
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                     <tr>
                         <td valign="middle" align="left">
-                            <img src="{{ $logoUrl }}" class="logo" alt="PGT Logistics">
+                            <span class="logo-wrap">
+                                <img src="{{ $logoUrl ?? 'https://www.pgtlogistics.com/assetsAuth/img/logoNew.png' }}" class="logo" alt="PGT Logistics">
+                            </span>
                         </td>
                         <td valign="middle" align="right">
                             <div class="header-title">Recibo de Compra</div>
@@ -155,8 +165,10 @@
             <div class="content">
                 <p class="greeting">Hola {{ $recibo->cliente }},</p>
                 <p class="lead">
-                    Muchas gracias por su compra. Apreciamos su preferencia. Adjunto encontrará su recibo en PDF. A
-                    continuación le compartimos un resumen de la transacción.
+                    Muchas gracias por su compra. Apreciamos su preferencia. Adjunto encontrara su recibo en PDF.
+                    @if(!empty($recibo->concepto))
+                    Tienda seleccionada: <strong>{{ $recibo->concepto }}</strong>.
+                    @endif
                 </p>
 
                 <div class="card">
@@ -173,7 +185,7 @@
                                 <div class="card-value">{{ $recibo->casillero }}</div>
                                 <div class="card-label">Fecha</div>
                                 <div class="card-value">{{ \Carbon\Carbon::parse($recibo->fecha)->format('d/m/Y') }}</div>
-                                <div class="card-label">Método de pago</div>
+                                <div class="card-label">Metodo de pago</div>
                                 <div class="card-value">{{ $recibo->metodo_pago }}</div>
                             </td>
                         </tr>
@@ -190,7 +202,7 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td>{{ $recibo->concepto ?: 'Sin tienda especificada' }}</td>
+                            <td>{{ !empty($recibo->concepto) ? $recibo->concepto : 'Compra asistida' }}</td>
                             <td class="text-right">B/. {{ number_format($subtotal, 2) }}</td>
                             <td class="text-right">B/. {{ number_format($recibo->monto, 2) }}</td>
                         </tr>
@@ -203,7 +215,7 @@
                         <td class="text-right">B/. {{ number_format($subtotal, 2) }}</td>
                     </tr>
                     <tr>
-                        <td>Comisión</td>
+                        <td>Comision</td>
                         <td class="text-right">B/. {{ number_format($itbms, 2) }}</td>
                     </tr>
                     <tr>
@@ -213,7 +225,7 @@
                 </table>
 
                 <p class="note">
-                    Si tiene alguna consulta, responda a este correo o contáctenos a través de nuestros canales de atención.
+                    Si tiene alguna consulta, responda a este correo o contactenos por nuestros canales de atencion.
                 </p>
             </div>
 

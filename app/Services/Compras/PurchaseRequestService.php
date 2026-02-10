@@ -43,9 +43,6 @@ class PurchaseRequestService
         }
     }
 
-       
-                                                                         
-       
     public function computeCharges(int $storeId, int $itemQuantity, float $quotedTotal): array
     {
         $rules = StoreRule::query()->where('store_id', $storeId)->first();
@@ -74,9 +71,6 @@ class PurchaseRequestService
         return $code;
     }
 
-       
-                                                            
-       
     public function pickStoreFromItemLink(?string $itemLink): array
     {
         $raw = trim((string) ($itemLink ?? ''));
@@ -103,9 +97,6 @@ class PurchaseRequestService
         }
     }
 
-       
-                                                                                                    
-       
     public function storeUpload(UploadedFile $file): array
     {
         $ext = $file->getClientOriginalExtension();
@@ -141,6 +132,7 @@ class PurchaseRequestService
         $sourceSystem = trim((string) ($payload['origen'] ?? '')) ?: 'FACTURADOR_LARAVEL';
         $descripcion = trim((string) ($payload['descripcion_compra'] ?? '')) ?: null;
         $paymentMethod = trim((string) ($payload['metodo_pago'] ?? '')) ?: null;
+        $accountEmail = trim((string) ($payload['email_cliente'] ?? '')) ?: null;
         $subtotal = is_numeric($payload['subtotal'] ?? null) ? (float) $payload['subtotal'] : null;
         $montoPagado = is_numeric($payload['monto_pagado'] ?? null) ? (float) $payload['monto_pagado'] : null;
         $evidenciaUrl = trim((string) ($payload['evidencia_pago_url'] ?? '')) ?: null;
@@ -190,7 +182,7 @@ class PurchaseRequestService
             'client_code' => $clientCode,
             'contact_channel' => 'Facturador',
             'payment_method' => $paymentMethod,
-            'account_email' => null,
+            'account_email' => $accountEmail,
             'account_password_enc' => null,
             'store_id' => $storeId,
             'store_custom_name' => $storeId === 7 ? ($storeCustomName ?: 'OTROS') : null,

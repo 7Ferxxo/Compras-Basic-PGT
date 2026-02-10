@@ -19,6 +19,12 @@
       .brand {
         width: 140px;
       }
+      .brand-logo {
+        width: 150px;
+        height: auto;
+        display: block;
+        margin-bottom: 6px;
+      }
       .header-table {
         width: 100%;
         margin-bottom: 12px;
@@ -100,6 +106,8 @@
       $comision = (float) ($request->american_card_charge ?? 0);
       $residencial = (float) ($request->residential_charge ?? 0);
       $total = $subtotal + $comision + $residencial;
+      $logoPath = public_path('imagenes/logo.png');
+      $logoDataUri = is_file($logoPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath)) : null;
       $sucursal = '-';
       if (!empty($request->notes) && str_contains($request->notes, 'Sucursal:')) {
         $firstLine = strtok($request->notes, "\n");
@@ -111,7 +119,11 @@
       <table class="header-table" cellpadding="0" cellspacing="0">
         <tr>
           <td width="60%" valign="top">
-            <div style="font-weight:700;color:#0b3a6b;font-size:22px;letter-spacing:1px;">PGT LOGISTICS</div>
+            @if($logoDataUri)
+              <img src="{{ $logoDataUri }}" alt="PGT Logistics" class="brand-logo" />
+            @else
+              <div style="font-weight:700;color:#0b3a6b;font-size:22px;letter-spacing:1px;">PGT LOGISTICS</div>
+            @endif
 
             <div class="client-box">
               <strong>CLIENTE:</strong><br>
@@ -153,11 +165,11 @@
 
       <table class="totals" cellpadding="0" cellspacing="0">
         <tr>
-          <td>Precio del artÃƒÆ’Ã‚Â­culo:</td>
+          <td>Precio del articulo:</td>
           <td>B/. {{ number_format($subtotal, 2, '.', '') }}</td>
         </tr>
         <tr>
-          <td>ComisiÃƒÆ’Ã‚Â³n:</td>
+          <td>Comision:</td>
           <td>B/. {{ number_format($comision, 2, '.', '') }}</td>
         </tr>
         <tr>

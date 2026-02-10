@@ -40,43 +40,25 @@ class FacturaController extends Controller
         }
 
         $rutaCompleta = $rutaCarpeta . '/' . $nombreArchivo;
-        $pdfBytes = null;
 
-        if (!file_exists($rutaCompleta) && $recibo->pdf_blob) {
-            file_put_contents($rutaCompleta, $recibo->pdf_blob);
+        $monto = (float) $recibo->monto;
+        $itbmsRate = 0.0;
+        if ($recibo->metodo_pago === 'Yappy') {
+            $itbmsRate = 0.02;
+        } elseif ($recibo->metodo_pago === 'Tarjeta') {
+            $itbmsRate = 0.03;
         }
 
-        if (!file_exists($rutaCompleta)) {
-            $monto = (float) $recibo->monto;
-            $itbmsRate = 0.0;
-            if ($recibo->metodo_pago === 'Yappy') {
-                $itbmsRate = 0.02;
-            } elseif ($recibo->metodo_pago === 'Tarjeta') {
-                $itbmsRate = 0.03;
-            }
+        $subtotal = $itbmsRate > 0 ? ($monto / (1 + $itbmsRate)) : $monto;
+        $itbms = $monto - $subtotal;
 
-            $subtotal = $itbmsRate > 0 ? ($monto / (1 + $itbmsRate)) : $monto;
-            $itbms = $monto - $subtotal;
+        $pdf = Pdf::loadView('pdf.recibo', compact('recibo', 'subtotal', 'itbms'));
+        $pdfBytes = $pdf->output();
+        file_put_contents($rutaCompleta, $pdfBytes);
 
-            $pdf = Pdf::loadView('pdf.recibo', compact('recibo', 'subtotal', 'itbms'));
-            $pdfBytes = $pdf->output();
-            $pdf->save($rutaCompleta);
-
-            if (!$recibo->pdf_blob) {
-                $recibo->pdf_blob = $pdfBytes;
-                $recibo->save();
-            }
-        } elseif (!$recibo->pdf_blob && is_file($rutaCompleta)) {
-            $pdfBytes = file_get_contents($rutaCompleta);
-            $recibo->pdf_blob = $pdfBytes;
-            $recibo->save();
-        }
-
-        if ($recibo->pdf_filename !== $nombreArchivo) {
+        if ($recibo->pdf_filename !== $nombreArchivo || $recibo->pdf_blob !== $pdfBytes) {
             $recibo->pdf_filename = $nombreArchivo;
-            if ($pdfBytes !== null) {
-                $recibo->pdf_blob = $pdfBytes;
-            }
+            $recibo->pdf_blob = $pdfBytes;
             $recibo->save();
         }
 
@@ -124,12 +106,12 @@ class FacturaController extends Controller
             $nombreArchivo = 'recibo-' . $recibo->id . '-' . time() . '.pdf';
             $pdf = Pdf::loadView('pdf.recibo', compact('recibo', 'subtotal', 'itbms'));
             $pdfBytes = $pdf->output();
-            
+
             $rutaCarpeta = public_path('facturas_pdf');
             if (!is_dir($rutaCarpeta)) {
                 mkdir($rutaCarpeta, 0755, true);
             }
-            
+
             $rutaCompleta = $rutaCarpeta . '/' . $nombreArchivo;
             file_put_contents($rutaCompleta, $pdfBytes);
 
@@ -140,7 +122,6 @@ class FacturaController extends Controller
             $tipoServicio = strtoupper((string) $request->input('tipo_servicio', 'OTRO'));
             if ($tipoServicio === 'BASIC') {
                 try {
-                                                                        
                     $purchaseRequests = app(PurchaseRequestService::class);
 
                     $purchaseRequests->createFromInvoiceWebhookPayload([
@@ -237,7 +218,7 @@ class FacturaController extends Controller
                         + (float) ($row->american_card_charge ?? 0);
 
                     return [
-                        'id' => 'PR-' . $row->id,
+                        'id' => (string) ($row->code ?: ('BASIC-' . $row->id)),
                         'cliente' => $row->client_name,
                         'casillero' => $row->client_code,
                         'email_cliente' => $row->account_email,

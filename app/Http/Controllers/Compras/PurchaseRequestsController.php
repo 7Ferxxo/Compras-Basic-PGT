@@ -740,11 +740,21 @@ class PurchaseRequestsController extends Controller
             $storeName = $storeName . ' - ' . $purchaseRequest->store_custom_name;
         }
 
-        \App\Jobs\SendPurchaseRequestNotification::dispatch(
-            $purchaseRequest->id,
-            $charges,
-            $storeName
-        );
+        if (app()->environment('local')) {
+            \App\Jobs\SendPurchaseRequestNotification::dispatchSync(
+                $purchaseRequest->id,
+                $charges,
+                $storeName,
+                true
+            );
+        } else {
+            \App\Jobs\SendPurchaseRequestNotification::dispatch(
+                $purchaseRequest->id,
+                $charges,
+                $storeName,
+                true
+            );
+        }
 
         RequestLog::query()->create([
             'request_id' => $purchaseRequest->id,
@@ -757,10 +767,11 @@ class PurchaseRequestsController extends Controller
 
         return $this->okResponse([
             'ok' => true,
-            'message' => 'Comprobante en cola para reenvio',
+            'message' => app()->environment('local')
+                ? 'Comprobante reenviado'
+                : 'Comprobante en cola para reenvio',
             'email' => $emailTo,
         ]);
     }
 }
-
 

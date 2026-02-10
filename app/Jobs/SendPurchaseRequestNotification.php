@@ -10,6 +10,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
@@ -23,7 +24,8 @@ class SendPurchaseRequestNotification implements ShouldQueue
     public function __construct(
         public int $purchaseRequestId,
         public array $charges,
-        public string $storeName
+        public string $storeName,
+        public bool $force = false
     ) {
     }
 
@@ -58,6 +60,25 @@ class SendPurchaseRequestNotification implements ShouldQueue
             return;
         }
 
+        if (!$this->force && $purchaseRequest->receipt_sent_at) {
+            Log::info('Skipping receipt email - already sent', [
+                'request_id' => $purchaseRequest->id,
+                'code' => $purchaseRequest->code,
+                'email' => $emailTo,
+            ]);
+            return;
+        }
+
+        $lock = Cache::lock('purchase-request-receipt:' . $purchaseRequest->id, 60);
+        if (!$lock->get()) {
+            Log::info('Skipping receipt email - lock already held', [
+                'request_id' => $purchaseRequest->id,
+                'code' => $purchaseRequest->code,
+                'email' => $emailTo,
+            ]);
+            return;
+        }
+
         $purchaseRequest->increment('receipt_send_attempts');
 
         $pdfBytes = null;
@@ -85,6 +106,7 @@ class SendPurchaseRequestNotification implements ShouldQueue
                 'request' => $purchaseRequest,
                 'storeName' => $this->storeName,
                 'charges' => $this->charges,
+                'logoUrl' => 'https://www.pgtlogistics.com/assetsAuth/img/logoNew.png',
             ], function ($message) use ($emailTo, $purchaseRequest, $pdfBytes) {
                 $subject = 'Nueva Solicitud de Compra - ' . $purchaseRequest->code;
                 $message->to($emailTo)->subject($subject);
@@ -141,6 +163,8 @@ class SendPurchaseRequestNotification implements ShouldQueue
             ]);
 
             throw $e;
+        } finally {
+            optional($lock)->release();
         }
     }
 

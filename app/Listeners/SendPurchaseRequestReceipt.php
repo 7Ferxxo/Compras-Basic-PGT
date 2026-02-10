@@ -11,7 +11,7 @@ class SendPurchaseRequestReceipt
     public function handle(PurchaseRequestCreated $event): void
     {
         $emailTo = trim((string) $event->purchaseRequest->account_email);
-        
+
         if ($emailTo === '') {
             Log::info('Skipping receipt email - no email provided', [
                 'request_id' => $event->purchaseRequest->id,
@@ -27,11 +27,21 @@ class SendPurchaseRequestReceipt
         ]);
 
         try {
-            SendPurchaseRequestNotification::dispatch(
-                $event->purchaseRequest->id,
-                $event->charges,
-                $event->storeName
-            );
+            if (app()->environment('local')) {
+                SendPurchaseRequestNotification::dispatchSync(
+                    $event->purchaseRequest->id,
+                    $event->charges,
+                    $event->storeName,
+                    false
+                );
+            } else {
+                SendPurchaseRequestNotification::dispatch(
+                    $event->purchaseRequest->id,
+                    $event->charges,
+                    $event->storeName,
+                    false
+                );
+            }
         } catch (\Throwable $exception) {
             Log::error('Receipt email job failed to dispatch', [
                 'request_id' => $event->purchaseRequest->id,

@@ -25,7 +25,7 @@
   function formatDate(value) {
     if (!value) return "-";
     const raw = String(value);
-    
+
     const normalized = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? `${raw}T00:00:00` : raw;
     const d = new Date(normalized);
     if (Number.isNaN(d.getTime())) return raw;
@@ -83,7 +83,6 @@
       const a = ra?.[key];
       const b = rb?.[key];
 
-      
       if (key === "fecha") {
         const ad = a ? new Date(String(a)) : null;
         const bd = b ? new Date(String(b)) : null;
@@ -127,8 +126,8 @@
     const items = state.all || [];
     $("#kpiCount").textContent = String(items.length);
 
-    const total = items.reduce((acc, r) => acc + (Number(r?.monto) || 0), 0);
-    $("#kpiAmount").textContent = money(total);
+    const lastBasic = items.find((r) => String(r?.id || "").toUpperCase().startsWith("BASIC-"));
+    $("#kpiBasicLast").textContent = lastBasic ? `#${lastBasic.id}` : "-";
 
     const last = items[0];
     $("#kpiLast").textContent = last ? `#${last.id} - ${formatDate(last.fecha)}` : "-";
@@ -281,8 +280,17 @@
       const res = await fetch("/get-recibos");
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      
-      state.all = Array.isArray(data) ? data.slice().sort((a, b) => (b.id || 0) - (a.id || 0)) : [];
+
+      state.all = Array.isArray(data)
+        ? data
+            .slice()
+            .sort((a, b) => {
+              const ad = a?.fecha ? new Date(String(a.fecha)).getTime() : 0;
+              const bd = b?.fecha ? new Date(String(b.fecha)).getTime() : 0;
+              if (bd !== ad) return bd - ad;
+              return String(b?.id || "").localeCompare(String(a?.id || ""));
+            })
+        : [];
       renderKpis();
       renderFilterOptions();
       applyFilters();

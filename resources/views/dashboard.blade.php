@@ -14,7 +14,7 @@
             <div class="top-left">
                 <div class="kicker">HISTORIAL</div>
                 <h1>Recibos</h1>
-                <div class="sub">Últimos recibos registrados. Busca, filtra y abre el PDF en un clic.</div>
+                <div class="sub">Ultimos recibos registrados. Busca, filtra y abre el PDF en un clic.</div>
             </div>
             <div class="top-actions">
                 <a href="/" class="btn ghost" id="backBtn">Volver</a>
@@ -28,11 +28,11 @@
                 <div class="kpi-value" id="kpiCount">-</div>
             </div>
             <div class="kpi">
-                <div class="kpi-label">Monto total</div>
-                <div class="kpi-value" id="kpiAmount">-</div>
+                <div class="kpi-label">Ultimo Basic</div>
+                <div class="kpi-value" id="kpiBasicLast">-</div>
             </div>
             <div class="kpi">
-                <div class="kpi-label">Último</div>
+                <div class="kpi-label">Ultimo</div>
                 <div class="kpi-value" id="kpiLast">-</div>
             </div>
         </section>
@@ -40,7 +40,7 @@
         <section class="controls" aria-label="Filtros">
             <div class="field">
                 <label for="search-input">Buscar</label>
-                <input type="text" id="search-input" placeholder="Cliente, casillero, email, sucursal, método, monto o #..." autocomplete="off">
+                <input type="text" id="search-input" placeholder="Cliente, casillero, email, sucursal, metodo, monto o #..." autocomplete="off">
             </div>
             <div class="field">
                 <label for="filter-sucursal">Sucursal</label>
@@ -49,13 +49,13 @@
                 </select>
             </div>
             <div class="field">
-                <label for="filter-metodo">Método</label>
+                <label for="filter-metodo">Metodo</label>
                 <select id="filter-metodo">
                     <option value="">Todos</option>
                 </select>
             </div>
             <div class="field">
-                <label for="page-size">Página</label>
+                <label for="page-size">Pagina</label>
                 <select id="page-size">
                     <option value="10">10</option>
                     <option value="25" selected>25</option>
@@ -73,7 +73,7 @@
             <div class="table-meta">
                 <div class="meta-left">
                     <span class="meta-pill" id="metaCount">-</span>
-                    <span class="meta-pill subtle" id="metaHint">Ordenado por 
+                    <span class="meta-pill subtle" id="metaHint">Ordenado por -</span>
                 </div>
                 <div class="meta-right" id="pagerTop"></div>
             </div>
@@ -82,14 +82,14 @@
                 <table id="recibos-table">
                     <thead>
                         <tr>
-                            <th data-sort="id">
+                            <th data-sort="id">#</th>
                             <th data-sort="cliente">Cliente</th>
                             <th data-sort="casillero">Casillero</th>
                             <th data-sort="email_cliente">Email</th>
                             <th data-sort="sucursal">Sucursal</th>
                             <th data-sort="monto">Monto</th>
                             <th data-sort="fecha">Fecha</th>
-                            <th data-sort="metodo_pago">Método</th>
+                            <th data-sort="metodo_pago">Metodo</th>
                             <th>PDF</th>
                         </tr>
                     </thead>
@@ -98,7 +98,7 @@
 
                 <div class="empty" id="emptyState" style="display:none;">
                     <div class="empty-title">Sin resultados</div>
-                    <div class="empty-sub">Ajusta la búsqueda o limpia los filtros.</div>
+                    <div class="empty-sub">Ajusta la busqueda o limpia los filtros.</div>
                 </div>
 
                 <div class="loading" id="loadingState" style="display:none;">
@@ -117,4 +117,3 @@
     <script src="dashboard.js"></script>
 </body>
 </html>
-

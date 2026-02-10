@@ -24,6 +24,16 @@ class SendReceiptNotifications implements ShouldQueue
     {
         $recibo = Recibo::query()->find($this->reciboId);
         if (!$recibo) return;
+        $emailTo = trim((string) $recibo->email_cliente);
+        if ($emailTo === '') {
+            Log::warning('Recibo sin email, se omite envio', [
+                'id_recibo' => $recibo->id,
+            ]);
+            return;
+        }
+
+        $recibo->receipt_send_attempts = (int) ($recibo->receipt_send_attempts ?? 0) + 1;
+        $recibo->save();
 
         $monto = (float) $recibo->monto;
         $itbmsRate = 0.0;
@@ -48,21 +58,46 @@ class SendReceiptNotifications implements ShouldQueue
                 'recibo' => $recibo,
                 'subtotal' => $subtotal,
                 'itbms' => $itbms,
-                'logoUrl' => asset('imagenes/logo.png'),
+                'logoUrl' => 'https://www.pgtlogistics.com/assetsAuth/img/logoNew.png',
             ];
 
-            Mail::send('emails.recibo', $data, function ($message) use ($recibo, $rutaCompleta) {
-                $message->to($recibo->email_cliente, $recibo->cliente)
+            Mail::send('emails.recibo', $data, function ($message) use ($recibo, $rutaCompleta, $emailTo) {
+                $message->to($emailTo, $recibo->cliente)
                         ->subject('Nuevo Recibo de Compra - PGT Logistics');
 
                 if ($rutaCompleta) {
                     $message->attach($rutaCompleta);
                 }
             });
+
+            $failures = Mail::failures();
+            if (!empty($failures)) {
+                $recibo->receipt_send_error = 'Fallo de entrega SMTP: ' . implode(', ', $failures);
+                $recibo->save();
+                Log::error('Fallo de entrega de correo de recibo', [
+                    'id_recibo' => $recibo->id,
+                    'email' => $emailTo,
+                    'failures' => $failures,
+                    'attempt' => $recibo->receipt_send_attempts,
+                ]);
+            } else {
+                $recibo->receipt_sent_at = now();
+                $recibo->receipt_send_error = null;
+                $recibo->save();
+                Log::info('Correo de recibo enviado correctamente', [
+                    'id_recibo' => $recibo->id,
+                    'email' => $emailTo,
+                    'attempt' => $recibo->receipt_send_attempts,
+                ]);
+            }
         } catch (\Exception $e) {
+            $recibo->receipt_send_error = $e->getMessage();
+            $recibo->save();
             Log::error('Error enviando correo de recibo', [
                 'error' => $e->getMessage(),
                 'id_recibo' => $recibo->id,
+                'email' => $emailTo,
+                'attempt' => $recibo->receipt_send_attempts,
             ]);
         }
 
