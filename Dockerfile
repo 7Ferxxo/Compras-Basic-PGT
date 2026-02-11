@@ -1,13 +1,14 @@
 FROM composer:2.8 AS vendor
 WORKDIR /app
 COPY composer.json composer.lock ./
-RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts
 
 FROM php:8.2-cli-bookworm
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     unzip \
+    libonig-dev \
     libpq-dev \
     libzip-dev \
     libpng-dev \
@@ -24,7 +25,8 @@ COPY --from=vendor /usr/bin/composer /usr/bin/composer
 COPY . .
 COPY --from=vendor /app/vendor ./vendor
 
-RUN mkdir -p storage/framework/{cache,sessions,views} bootstrap/cache \
+RUN php artisan package:discover --ansi \
+    && mkdir -p storage/framework/{cache,sessions,views} bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache \
     && chmod -R ug+rw storage bootstrap/cache
 
