@@ -26,7 +26,7 @@ COPY . .
 COPY --from=vendor /app/vendor ./vendor
 
 RUN php artisan package:discover --ansi \
-    && mkdir -p storage/framework/{cache,sessions,views} bootstrap/cache \
+    && mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache \
     && chmod -R ug+rw storage bootstrap/cache
 
