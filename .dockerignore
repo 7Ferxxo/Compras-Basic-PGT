@@ -1,0 +1,14 @@
+.git
+.gitignore
+.env
+.env.*
+vendor
+node_modules
+npm-debug.log
+yarn.lock
+pnpm-lock.yaml
+storage/logs
+storage/framework/cache/data
+storage/framework/sessions
+storage/framework/views
+tests

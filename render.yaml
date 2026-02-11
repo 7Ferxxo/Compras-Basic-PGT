@@ -1,0 +1,63 @@
+services:
+  - type: web
+    name: compras-basic-pgt
+    runtime: docker
+    plan: free
+    region: oregon
+    branch: main
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    autoDeploy: true
+    healthCheckPath: /api/health
+    envVars:
+      - key: APP_NAME
+        value: ComprasBasicPGT
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_KEY
+        generateValue: true
+      - key: APP_URL
+        sync: false
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: LOG_LEVEL
+        value: info
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_URL
+        fromDatabase:
+          name: compras-basic-pgt-db
+          property: connectionString
+      - key: QUEUE_CONNECTION
+        value: sync
+      - key: SESSION_DRIVER
+        value: file
+      - key: CACHE_STORE
+        value: file
+      - key: MAIL_MAILER
+        value: log
+      - key: MAIL_FROM_ADDRESS
+        value: no-reply@example.com
+      - key: MAIL_FROM_NAME
+        value: PGT
+      - key: COMPRAS_ADMIN_TOKEN
+        sync: false
+      - key: FACTURACION_ADMIN_TOKEN
+        sync: false
+      - key: FACTURADOR_WEBHOOK_TOKEN
+        sync: false
+      - key: CRM_LOOKUP_URL
+        sync: false
+      - key: CRM_TOKEN
+        sync: false
+      - key: CRM_TIMEOUT
+        value: "5"
+
+databases:
+  - name: compras-basic-pgt-db
+    databaseName: compras_basic_pgt
+    user: compras_basic_pgt_user
+    plan: free
+    postgresMajorVersion: "15"
